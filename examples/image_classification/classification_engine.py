@@ -1,5 +1,7 @@
 import logging
 from typing import Dict
+import csv
+
 
 import numpy as np
 import torch
@@ -9,6 +11,7 @@ import torch.optim as optim
 from .cnn import Net
 from .conversion import Converter
 from .ic_training import DataManger, execute_ic_training
+from .analyse_dataset import dataset_mean
 
 from fl_main.agent.client import Client
 
@@ -45,7 +48,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
         # Prepare the training data
         # num of samples / 4 = threshold for training due to the batch size
 
-        DataManger.dm(int(TrainingMetaData.num_training_data / 4))
+        # dm = DataManger(int(TrainingMetaData.num_training_data / 4))
         return init_models()
 
     # Do ML Training
@@ -59,7 +62,23 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
     # models -- training --> new local models
-    trained_net = execute_ic_training(DataManger.dm(), net, criterion, optimizer)
+    dm = DataManger(int(TrainingMetaData.num_training_data / 4))
+    data_object_for_training = dm #instance of DataManager object
+    trained_net, round_loss, train_dataset = execute_ic_training(data_object_for_training, net, criterion, optimizer)
+    
+    calcualted_mean = dataset_mean(train_dataset)
+    print("Round loss:", round_loss, " - Dataset Mean:", calcualted_mean)
+
+    #writing the info to a csv file: 
+    filename = 'measuring.txt'
+
+    with open('measuring.txt', 'a', encoding='utf-8') as f:
+        line = str(round_loss) + "," + str(calcualted_mean) + "\n"
+        f.write(line)
+
+
+
+    
     models = Converter.cvtr().convert_nn_to_dict_nparray(trained_net)
     return models
 
@@ -75,8 +94,9 @@ def compute_performance(models: Dict[str,np.array], testdata, is_local: bool) ->
 
     correct = 0
     total = 0
+    dm = DataManger(int(TrainingMetaData.num_training_data / 4))
     with torch.no_grad():
-        for data in DataManger.dm().testloader:
+        for data in dm.testloader:
             images, labels = data
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
