@@ -11,7 +11,7 @@ import torch.optim as optim
 from .cnn import Net
 from .conversion import Converter
 from .ic_training import DataManger, execute_ic_training
-from .analyse_dataset import dataset_mean
+from .analyse_dataset import dataset_mean, dataset_embeds
 
 from fl_main.agent.client import Client
 
@@ -64,20 +64,19 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
     # models -- training --> new local models
     dm = DataManger(int(TrainingMetaData.num_training_data / 4))
     data_object_for_training = dm #instance of DataManager object
-    trained_net, round_loss, train_dataset = execute_ic_training(data_object_for_training, net, criterion, optimizer)
+    trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
-    calcualted_mean = dataset_mean(train_dataset)
-    print("Round loss:", round_loss, " - Dataset Mean:", calcualted_mean)
+    #calculated_mean = dataset_mean(train_dataset_tensors)
+    calculated_mean = -1
+    calculate_embeddings = dataset_embeds(trainset_dataset_PIL)
+    print("Round loss:", round_loss, " - Dataset Mean:", calculated_mean)
 
     #writing the info to a csv file: 
     filename = 'measuring.txt'
 
     with open('measuring.txt', 'a', encoding='utf-8') as f:
-        line = str(round_loss) + "," + str(calcualted_mean) + "\n"
+        line = str(round_loss) + "," + str(calculated_mean) + "\n"
         f.write(line)
-
-
-
     
     models = Converter.cvtr().convert_nn_to_dict_nparray(trained_net)
     return models

@@ -5,6 +5,19 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 
+class MyDataset(torch.utils.data.Dataset):
+    def __init__(self, subset, transform=None):
+        self.subset = subset
+        self.transform = transform
+        
+    def __getitem__(self, index):
+        x, y = self.subset[index]
+        if self.transform:
+            x = self.transform(x)
+        return x, y
+        
+    def __len__(self):
+        return len(self.subset)
 
 class DataManger:
     """
@@ -25,10 +38,11 @@ class DataManger:
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                                download=True, transform=transform)
+                                                download=True, transform=None)
 
         testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                download=True, transform=transform)
+        
             
         #OFL - to access the trainset variable above
         #accessed in execute_ic_training method
@@ -38,7 +52,9 @@ class DataManger:
         indices = np.random.permutation(indices)
         train_indices = indices[:int(N*0.1)]
 
-        self.public_trainset = torch.utils.data.Subset(trainset, train_indices)
+        self.pt = torch.utils.data.Subset(trainset, train_indices)
+        self.public_trainset_PIL = MyDataset(self.pt)
+        self.public_trainset = MyDataset(self.pt, transform=transform) #using custom dataset to transform PILImages to tensors for training
 
 
         self.trainloader = torch.utils.data.DataLoader(self.public_trainset, batch_size=4,
@@ -113,6 +129,6 @@ def execute_ic_training(dm, net, criterion, optimizer):
     #OFL
     print("Final running loss for round =", final_running_loss)
     print("Trainset type: ", type(dm.trainloader))
-    return net, final_running_loss, dm.trainloader
+    return net, final_running_loss, dm.trainloader, dm.public_trainset_PIL
 
 
