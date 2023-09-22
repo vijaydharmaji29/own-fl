@@ -6,6 +6,10 @@ from torchvision import transforms
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 
+import warnings
+warnings.filterwarnings('ignore')
+
+
 def dataset_mean(dataset_tensor):
     l = [data[0] for i, data in enumerate(dataset_tensor)]
     l = tuple(l)
@@ -14,26 +18,37 @@ def dataset_mean(dataset_tensor):
     calculated_mean = torch.mean(stacked_tensor)
     return calculated_mean
 
-def dataset_embeds(dataset_pil):
-    print("Dataset PIL", dataset_pil[0])
-
+def calculate_image_embeds(image_given):
     model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
-
-    # image = Image.open(dataset_pil[0])
-    image = dataset_pil[0][0]
-
-    transform = transforms.Compose([transforms.PILToTensor()])
-    # img_tensor = transform(image)
+    image = image_given
 
 
-    inputs = processor(text=["a photo of a man", "a photo of a dog"], images=image, return_tensors="pt", padding=True)
+    inputs = processor(text=["a photo of a man"], images=image, return_tensors="pt", padding=True)
     outputs = model(**inputs)
-    logits_per_image = outputs.logits_per_image # this is the image-text similarity score
     image_embeds = outputs.image_embeds
-    probs = logits_per_image.softmax(dim=1) # we can take the softmax to get the label probabilities
 
-    print("IMAGE")
-    print(image_embeds)
+    return(image_embeds)
+
+def dataset_embeds(dataset_pil):
+    print("getting embeddings: ")
+    dataset_embedings_list = []
+
+    for i in range(len(dataset_pil)):
+        image = dataset_pil[i][0]
+
+        image_embed = calculate_image_embeds(image)
+        if i == 0:
+            print("Type of image embeds: ", type(image_embed))
+            print("Image embeds: ", image_embed)
+
+        dataset_embedings_list.append(image_embed)
+
+    return dataset_embedings_list
+
+def dataset_mean_embeds(dataset_pil):
+    dataset_embeds_list = dataset_embeds(dataset_pil)
+
+    print("Done")
 
     return -1

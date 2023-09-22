@@ -11,7 +11,7 @@ import torch.optim as optim
 from .cnn import Net
 from .conversion import Converter
 from .ic_training import DataManger, execute_ic_training
-from .analyse_dataset import dataset_mean, dataset_embeds
+from .analyse_dataset import dataset_mean, dataset_mean_embeds
 
 from fl_main.agent.client import Client
 
@@ -67,8 +67,9 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
     #calculated_mean = dataset_mean(train_dataset_tensors)
+    calculated_mean_embeds = dataset_mean_embeds(trainset_dataset_PIL)
     calculated_mean = -1
-    calculate_embeddings = dataset_embeds(trainset_dataset_PIL)
+    # calculate_embeddings = dataset_embeds(trainset_dataset_PIL)
     print("Round loss:", round_loss, " - Dataset Mean:", calculated_mean)
 
     #writing the info to a csv file: 
