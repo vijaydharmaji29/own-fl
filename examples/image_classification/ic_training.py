@@ -56,9 +56,10 @@ class DataManger:
         self.public_trainset_PIL = MyDataset(self.pt)
         self.public_trainset = MyDataset(self.pt, transform=transform) #using custom dataset to transform PILImages to tensors for training
 
+        self.trainloader = torch.utils.data.DataLoader(self.public_trainset, batch_size=1,
+                                                        shuffle=True, num_workers=1)
 
-        self.trainloader = torch.utils.data.DataLoader(self.public_trainset, batch_size=4,
-                                                       shuffle=True, num_workers=2)
+        
 
         self.testloader = torch.utils.data.DataLoader(testset, batch_size=4,
                                                       shuffle=False, num_workers=2)
