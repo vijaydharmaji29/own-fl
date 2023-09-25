@@ -11,7 +11,8 @@ import torch.optim as optim
 from .cnn import Net
 from .conversion import Converter
 from .ic_training import DataManger, execute_ic_training
-from .analyse_dataset import dataset_mean, dataset_mean_embeds
+from .analyse_dataset import Analyser
+from .data_storage import DataStorage as ds
 
 from fl_main.agent.client import Client
 
@@ -64,23 +65,21 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
     # models -- training --> new local models
     dm = DataManger(int(TrainingMetaData.num_training_data / 4))
     data_object_for_training = dm #instance of DataManager object
+
+    #returns trained neural network,
+    #dataset used for training in terms of tensor (after tranformation)
+    #dataset usef for trainign in terms of PIL (before transformation)
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
-    #calculated_mean = dataset_mean(train_dataset_tensors)
-    calculated_mean_embeds = dataset_mean_embeds(trainset_dataset_PIL)
-    calculated_mean = -1
-    # calculate_embeddings = dataset_embeds(trainset_dataset_PIL)
-    print("Round loss:", round_loss, " - Dataset Mean:", calculated_mean)
-
     #writing the info to a csv file: 
-    filename = 'measuring.txt'
+    # filename = 'measuring.txt'
 
-    with open('measuring.txt', 'a', encoding='utf-8') as f:
-        line = str(round_loss) + "," + str(calculated_mean) + "\n"
-        f.write(line)
+    # with open(filename, 'a', encoding='utf-8') as f:
+    #     line = str(round_loss) + "," + str(calculated_mean) + "\n"
+    #     f.write(line)
     
     models = Converter.cvtr().convert_nn_to_dict_nparray(trained_net)
-    return models
+    return models, round_loss, train_dataset_tensors, trainset_dataset_PIL
 
 def compute_performance(models: Dict[str,np.array], testdata, is_local: bool) -> float:
     """
@@ -146,6 +145,10 @@ if __name__ == '__main__':
 
     training_count = 0
     gm_arrival_count = 0
+    
+    DataStorage = ds()
+    AD = Analyser()
+
     while judge_termination(training_count, gm_arrival_count):
 
         # Wait for Global models (base models)
@@ -156,10 +159,23 @@ if __name__ == '__main__':
         global_model_performance_data = compute_performance(global_models, prep_test_data(), False)
         #add model to add global model performance data to database
 
+        DataStorage.add_global_accuracy(global_model_performance_data)
+
         # Training
-        models = training(global_models)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models)
         training_count += 1
         logging.info(f'--- Training Done ---')
+
+        DataStorage.add_local_round_loss(round_loss)
+        DataStorage.add_train_dataset_tensors(train_dataset_tensors)
+
+        # calculated_dataset_mean = AD.calculate_dataset_mean(train_dataset_tensors)
+        # DataStorage.add_dataset_mean(calculated_dataset_mean)
+        train_dataset_list = DataStorage.get_train_dataset_tensors_list()
+        cossim = AD.cosine_similarity(train_dataset_list, train_dataset_list[-1])
+
+        print(cossim[0])
+        
 
         # Local Model evaluation (id, accuracy)
         accuracy = compute_performance(models, prep_test_data(), True)
