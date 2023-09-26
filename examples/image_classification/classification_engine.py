@@ -171,11 +171,10 @@ if __name__ == '__main__':
 
         # calculated_dataset_mean = AD.calculate_dataset_mean(train_dataset_tensors)
         # DataStorage.add_dataset_mean(calculated_dataset_mean)
-        train_dataset_list = DataStorage.get_train_dataset_tensors_list()
-        cossim = AD.cosine_similarity(train_dataset_list, train_dataset_list[-1])
-
-        print(cossim[0])
+        # train_dataset_list = DataStorage.get_train_dataset_tensors_list()
+        # cossim = AD.cosine_similarity(train_dataset_list, train_dataset_list[-1])
         
+        # DataStorage.add_cosinesimilarity(cossim)
 
         # Local Model evaluation (id, accuracy)
         accuracy = compute_performance(models, prep_test_data(), True)

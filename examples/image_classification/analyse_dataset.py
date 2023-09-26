@@ -32,7 +32,7 @@ class Analyser:
         cos = nn.CosineSimilarity(dim=0)
 
         for t in tensor1:
-            cl.append(torch.flatten(cos(t, tensor2)))
+            cl.append(torch.norm(torch.flatten(cos(t, tensor2))))
 
         return cl
 
