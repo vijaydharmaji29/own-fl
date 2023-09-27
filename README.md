@@ -1,3 +1,5 @@
+### Vijay Dharmaji
+
 To run the image classification example
 
 Enter the main OwnFL directory: 
