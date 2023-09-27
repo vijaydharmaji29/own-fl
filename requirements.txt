@@ -109,8 +109,8 @@ tenacity==8.2.3
 thinc==8.1.12
 tiktoken==0.4.0
 tokenizers==0.13.3
-torch==2.0.1
-torchvision==0.15.2
+torch
+torchvision
 tqdm==4.66.1
 transformers==4.32.1
 typer==0.9.0
