@@ -1,4 +1,4 @@
-Shivam's Version:
+Shivam:
 
 To run the image classification example
 
