@@ -3,9 +3,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from PIL import Image
-from transformers import CLIPProcessor, CLIPModel
-
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
@@ -37,38 +34,3 @@ class Analyser:
             cl.append(torch.norm(torch.flatten(cos(t, tensor2))))
 
         return cl
-
-    def calculate_image_embeds(self, image_given):
-        model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
-        processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
-        image = image_given
-
-
-        inputs = processor(text=["a photo of a man"], images=image, return_tensors="pt", padding=True)
-        outputs = model(**inputs)
-        image_embeds = outputs.image_embeds
-
-        return(image_embeds)
-
-    def dataset_embeds(self, dataset_pil):
-        print("getting embeddings: ")
-        dataset_embedings_list = []
-
-        for i in range(len(dataset_pil)):
-            image = dataset_pil[i][0]
-
-            image_embed = self.calculate_image_embeds(image)
-            if i == 0:
-                print("Type of image embeds: ", type(image_embed))
-                print("Image embeds: ", image_embed)
-
-            dataset_embedings_list.append(image_embed)
-
-        return dataset_embedings_list
-
-    def dataset_mean_embeds(self, dataset_pil):
-        dataset_embeds_list = self.dataset_embeds(dataset_pil)
-
-        print("Done")
-
-        return -1

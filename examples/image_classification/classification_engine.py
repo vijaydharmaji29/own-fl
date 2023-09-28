@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 import csv
+import pandas as pd
 
 
 import numpy as np
@@ -72,13 +73,6 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
     #dataset usef for trainign in terms of PIL (before transformation)
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
-    #writing the info to a csv file: 
-    # filename = 'measuring.txt'
-
-    # with open(filename, 'a', encoding='utf-8') as f:
-    #     line = str(round_loss) + "," + str(calculated_mean) + "\n"
-    #     f.write(line)
-    
     models = Converter.cvtr().convert_nn_to_dict_nparray(trained_net)
     return models, round_loss, train_dataset_tensors, trainset_dataset_PIL
 
@@ -113,7 +107,10 @@ def compute_performance(models: Dict[str,np.array], testdata, is_local: bool) ->
 
     return acc
 
-def judge_termination(training_count: int = 0, gm_arrival_count: int = 0) -> bool:
+def judge_termination(training_count: int = 0, gm_arrival_count: int = 0, training_count_treshold: int = 5) -> bool:
+
+    if training_count >= training_count_treshold:
+        return False
     """
     Decide if it finishes training process and exits from FL platform
     :param training_count: int - the number of training done
@@ -128,9 +125,44 @@ def prep_test_data():
     testdata = 0
     return testdata
 
+def write_analysis(DataStorage):
+    global_accuracies = DataStorage.get_global_accuracies()
+    local_accuracies = DataStorage.get_local_accuracies()
+    dataset_means = DataStorage.get_dataset_means()
+    dataset_stds = DataStorage.get_dataset_stds()
+    dataset_tensor_similarities = DataStorage.get_dataset_tensor_similarities()
+    label_distribution_similarities = DataStorage.get_label_distribution_similarities()
+
+    print("\n\nPRINTING ANALYSIS\n\n")
+    print(global_accuracies, "\n") #int
+    print(local_accuracies, "\n") #int
+    print(dataset_means, "\n")
+    print(dataset_stds, "\n")
+    print(dataset_tensor_similarities, "\n")
+    print(label_distribution_similarities, "\n")
+
+    data = {"Global Accuracies": global_accuracies,
+            "Local Accuracies": local_accuracies, 
+            "Dataset Means": dataset_means,
+            "Dataset STDs": dataset_stds
+            }
+    
+    df = pd.DataFrame(data)
+
+    df.to_csv("measurement.csv")
+
+    df1 = pd.DataFrame(np.array(dataset_tensor_similarities))
+    df2 = pd.DataFrame(np.array(label_distribution_similarities))
+
+    df1.to_csv("measurement_tensor_similarities.csv")
+    df2.to_csv("measurement_label_similarities.csv")
+
+
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    logging.info('--- This is a demo of Image Classification with Federated Learning ---')
+    logging.info('--- Heterogeneity Aware FL with client level intelligenece ---')
 
     fl_client = Client()
     logging.info(f'--- Your IP is {fl_client.agent_ip} ---')
@@ -146,11 +178,15 @@ if __name__ == '__main__':
 
     training_count = 0
     gm_arrival_count = 0
+
+    training_count_treshold = 5
     
     DataStorage = ds()
     AD = Analyser()
 
-    while judge_termination(training_count, gm_arrival_count):
+    while judge_termination(training_count, gm_arrival_count, training_count_treshold):
+
+        print("\n\t TRAINING COUNT: ", training_count, "\n")
 
         # Wait for Global models (base models)
         global_models = fl_client.wait_for_global_model()
@@ -160,7 +196,7 @@ if __name__ == '__main__':
         global_model_performance_data = compute_performance(global_models, prep_test_data(), False)
         #add model to add global model performance data to database
 
-        DataStorage.add_global_accuracy(global_model_performance_data)
+        DataStorage.add_global_accuracy(global_model_performance_data)#this is lagged by one 
 
         # Training
         models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models)
@@ -170,13 +206,17 @@ if __name__ == '__main__':
         DataStorage.add_local_round_loss(round_loss)
         DataStorage.add_train_dataset_tensors(train_dataset_tensors)
 
-        # calculated_dataset_mean = AD.calculate_dataset_mean(train_dataset_tensors)
-        # DataStorage.add_dataset_mean(calculated_dataset_mean)
-        # train_dataset_list = DataStorage.get_train_dataset_tensors_list()
-        # cossim = AD.cosine_similarity(train_dataset_list, train_dataset_list[-1])
+        DataStorage.add_dataset_mean(AD.calculate_dataset_mean(train_dataset_tensors))
+        DataStorage.add_dataset_std(AD.calculate_dataset_std(train_dataset_tensors))
+
+        train_dataset_list = DataStorage.train_dataset_tensors_list
+        cossim = AD.cosine_similarity(train_dataset_list, train_dataset_list[-1])
         
-        # DataStorage.add_cosinesimilarity(cossim)
+        DataStorage.add_cosinesimilarity(cossim)
 
         # Local Model evaluation (id, accuracy)
         accuracy = compute_performance(models, prep_test_data(), True)
+        DataStorage.add_local_accuracy(accuracy)
         fl_client.send_trained_model(models, int(TrainingMetaData.num_training_data), accuracy)
+
+    write_analysis(DataStorage)
