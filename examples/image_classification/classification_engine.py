@@ -128,6 +128,7 @@ def prep_test_data():
 def write_analysis(DataStorage):
     global_accuracies = DataStorage.get_global_accuracies()
     local_accuracies = DataStorage.get_local_accuracies()
+    local_round_loss = DataStorage.get_local_round_loss()
     dataset_means = DataStorage.get_dataset_means()
     dataset_stds = DataStorage.get_dataset_stds()
     dataset_tensor_similarities = DataStorage.get_dataset_tensor_similarities()
@@ -143,6 +144,7 @@ def write_analysis(DataStorage):
 
     data = {"Global Accuracies": global_accuracies,
             "Local Accuracies": local_accuracies, 
+            "Local Round Loss": local_round_loss,
             "Dataset Means": dataset_means,
             "Dataset STDs": dataset_stds
             }

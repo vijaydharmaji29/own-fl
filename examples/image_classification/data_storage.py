@@ -126,6 +126,9 @@ class DataStorage:
     def get_local_accuracies(self):
         return self.local_accuracy
     
+    def get_local_round_loss(self):
+        return self.local_round_loss
+    
     def get_dataset_means(self):
         l = [x.item() for x in self.dataset_means]
         return l
