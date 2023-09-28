@@ -20,3 +20,7 @@ data
 measuring.txt
 test
 env
+measurement.csv
+measurement_label_similarities.csv
+measurment_tensor_similarities.csv
+measurement_tensor_similarities
