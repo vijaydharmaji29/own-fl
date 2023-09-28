@@ -3,6 +3,8 @@ import torchvision
 import torchvision.transforms as T
 from PIL import Image
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 class DataStorage:
     def __init__(self):
         print("\n\tInitialised DataStorage object\n\t")

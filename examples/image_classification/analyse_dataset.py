@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 class Analyser:
     

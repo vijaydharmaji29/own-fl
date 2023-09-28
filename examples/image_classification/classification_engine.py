@@ -16,6 +16,7 @@ from .data_storage import DataStorage as ds
 
 from fl_main.agent.client import Client
 
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 class TrainingMetaData:
     # The number of training data used for each round

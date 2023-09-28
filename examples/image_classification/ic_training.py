@@ -5,6 +5,8 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 class MyDataset(torch.utils.data.Dataset):
     def __init__(self, subset, transform=None):
         self.subset = subset

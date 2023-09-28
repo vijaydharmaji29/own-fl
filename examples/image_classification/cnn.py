@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import torch
 
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 class Net(nn.Module):
     """
