@@ -34,7 +34,7 @@ class DataManger:
     #         cls._singleton_dm = cls(th)
     #     return cls._singleton_dm
 
-    def __init__(self, cutoff_th: int):
+    def __init__(self, cutoff_th: int, last_accuracy = [1]*10):
         transform = transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -48,11 +48,75 @@ class DataManger:
             
         #OFL - to access the trainset variable above
         #accessed in execute_ic_training method
+        # generate skewed indices for trainset label distribution
+
         N = int(len(trainset))
-        # generate & shuffle indices
-        indices = np.arange(N)
-        indices = np.random.permutation(indices)
-        train_indices = indices[:int(N*0.1)]
+        shuffled_indices = np.arange(N)
+        shuffled_indices = np.random.permutation(shuffled_indices)
+
+        n_labels = 10
+        order_labels = np.arange(n_labels)
+        order_labels = np.random.permutation(order_labels) #this is the order of distributions, comment it out to keep the same label skewed
+
+
+        if(last_accuracy[0] !=  last_accuracy[1]):
+            la = last_accuracy[:]
+            print(len(last_accuracy))
+            order_labels = []
+            print("NOOTT", last_accuracy)
+            while(len(la) > 0):
+                index = 0
+                highest = la[0]
+                for i in range(len(la)):
+                    if la[i] > highest:
+                        index = i
+                        highest = la[i]
+
+                print("Highest", highest)
+
+                count = last_accuracy.count(highest)
+                if count >= 2:
+                    for i in range(len(last_accuracy)):
+                        if last_accuracy[i] == highest:
+                            la.pop(la.index(highest))
+                else:
+                    last_accuracy_index = last_accuracy.index(highest)
+                    order_labels.append(last_accuracy_index)
+                    la.pop(index)
+
+
+            order_labels = np.array(order_labels)
+            print(order_labels)
+
+
+
+        order_labels = np.arange(n_labels) #keeping it skewed dataset
+
+        train_indices = []
+        max_indices = N*.1
+
+        #adding to indices:
+        label_added_count = [0]*10
+        max_count_per_label = {}
+
+        #adding max count per label
+        for i in range(len(order_labels)):
+            max_count_per_label[order_labels[i]] = ((i+1) * max_indices / 55)
+
+
+        #adding the required images for training
+        for i in shuffled_indices:
+            current_label = trainset[i][1]
+            try:
+                if label_added_count[current_label] < max_count_per_label[current_label]:
+                    train_indices.append(i)
+                    label_added_count[current_label] += 1
+            except:
+                #pass
+                print("ERROR")
+                print(current_label)
+                print(label_added_count)
+                print(max_count_per_label)
 
         self.pt = torch.utils.data.Subset(trainset, train_indices)
         self.public_trainset_PIL = MyDataset(self.pt)
@@ -61,10 +125,8 @@ class DataManger:
         self.trainloader = torch.utils.data.DataLoader(self.public_trainset, batch_size=1,
                                                         shuffle=True, num_workers=1)
 
-        
-
         self.testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-                                                      shuffle=False, num_workers=2)
+                                                      shuffle=True, num_workers=2)
 
         self.classes = ('plane', 'car', 'bird', 'cat', 'deer',
                         'dog', 'frog', 'horse', 'ship', 'truck')
@@ -99,37 +161,34 @@ def execute_ic_training(dm, net, criterion, optimizer):
     """
     # To simulate the scenarios where each agent has less number of data
     # it exists from training after iterating till the cutoff threshold
-    random_indices = random.sample(range(0, len(dm.trainloader)), dm.cutoff_threshold)
+    # random_indices = random.sample(range(0, len(dm.trainloader)), len(dm.trainloader))
+
+    label_distribution = [0]*10
 
     final_running_loss = 0
     for epoch in range(1):
         running_loss = 0.0
-        j = 0
         for i, data in enumerate(dm.trainloader):
-            if i in random_indices:
-                j += 1
-                # get the inputs; data is a list of [inputs, labels]
-                inputs, labels = data
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
+            label_distribution[labels[0]] += 1
 
-                # forward + backward + optimize
-                outputs = net(inputs)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
-                # print statistics
-                running_loss += loss.item()
-                final_running_loss = running_loss
-                if j % 1000 == 999:  # print every 1000 mini-batches
-                    print('[%d, %5d] loss: %.3f' %
-                          (epoch + 1, j + 1, running_loss / 1000))
-                    # print("Loss.item: ", loss.item())
-                    running_loss = 0.0
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            final_running_loss = running_loss
 
     #OFL
+    print("Label distribution: ", label_distribution)
     print("Final running loss for round =", final_running_loss)
     print("Trainset type: ", type(dm.trainloader))
     return net, final_running_loss, dm.trainloader, dm.public_trainset_PIL

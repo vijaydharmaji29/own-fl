@@ -34,7 +34,7 @@ def init_models() -> Dict[str,np.array]:
     net = Net()
     return Converter.cvtr().convert_nn_to_dict_nparray(net)
 
-def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np.array]:
+def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None) -> Dict[str,np.array]:
     """
     A place holder function for each ML application
     Return the trained models
@@ -65,7 +65,12 @@ def training(models: Dict[str,np.array], init_flag: bool = False) -> Dict[str,np
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
     # models -- training --> new local models
-    dm = DataManger(int(TrainingMetaData.num_training_data / 4))
+    last_accuracy = [1] * 10
+    if len(DataStorage.label_accuracy) > 0:
+        last_accuracy = DataStorage.label_accuracy[-1]
+
+    dm = DataManger(int(TrainingMetaData.num_training_data / 4), last_accuracy)
+    print("ds label accuracy:", last_accuracy)
     data_object_for_training = dm #instance of DataManager object
 
     #returns trained neural network,
@@ -89,13 +94,30 @@ def compute_performance(models: Dict[str,np.array], testdata, is_local: bool) ->
     correct = 0
     total = 0
     dm = DataManger(int(TrainingMetaData.num_training_data / 4))
+
+    labels_predicted_correctly = [0]*10
+    labels_total = [0]*10
+
     with torch.no_grad():
         for data in dm.testloader:
             images, labels = data
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
+
+            for i in range(len(labels)):
+                labels_total[labels[i]] += 1
+                if labels[i] == predicted[i]:
+                    labels_predicted_correctly[labels[i]] += 1
+            
             correct += (predicted == labels).sum().item()
+
+    labels_accuracy = []
+
+    for i in range(len(labels_predicted_correctly)):
+        labels_accuracy.append(labels_predicted_correctly[i]/labels_total[i])
+        
+    print("Label wise accuracy", labels_accuracy)
 
     acc = float(correct) / total
 
@@ -105,9 +127,9 @@ def compute_performance(models: Dict[str,np.array], testdata, is_local: bool) ->
 
     print(f'Accuracy of the {mt} model with the 10000 test images: {100 * acc} %%')
 
-    return acc
+    return acc, labels_accuracy
 
-def judge_termination(training_count: int = 0, gm_arrival_count: int = 0, training_count_treshold: int = 5) -> bool:
+def judge_termination(training_count: int = 0, gm_arrival_count: int = 0, training_count_treshold: int = 20) -> bool:
 
     if training_count >= training_count_treshold:
         return False
@@ -126,39 +148,45 @@ def prep_test_data():
     return testdata
 
 def write_analysis(DataStorage):
-    global_accuracies = DataStorage.get_global_accuracies()
+    # global_accuracies = DataStorage.get_global_accuracies()
+    # local_accuracies = DataStorage.get_local_accuracies()
+    # local_round_loss = DataStorage.get_local_round_loss()
+    # dataset_means = DataStorage.get_dataset_means()
+    # dataset_stds = DataStorage.get_dataset_stds()
+    # dataset_tensor_similarities = DataStorage.get_dataset_tensor_similarities()
+    # label_distribution_similarities = DataStorage.get_label_distribution_similarities()
+
     local_accuracies = DataStorage.get_local_accuracies()
-    local_round_loss = DataStorage.get_local_round_loss()
-    dataset_means = DataStorage.get_dataset_means()
-    dataset_stds = DataStorage.get_dataset_stds()
-    dataset_tensor_similarities = DataStorage.get_dataset_tensor_similarities()
-    label_distribution_similarities = DataStorage.get_label_distribution_similarities()
 
     print("\n\nPRINTING ANALYSIS\n\n")
-    print(global_accuracies, "\n") #int
-    print(local_accuracies, "\n") #int
-    print(dataset_means, "\n")
-    print(dataset_stds, "\n")
-    print(dataset_tensor_similarities, "\n")
-    print(label_distribution_similarities, "\n")
+    print(local_accuracies)
+    with open("measurements.txt",'w') as f:
+        for i in local_accuracies:
+            f.write(str(i))
 
-    data = {"Global Accuracies": global_accuracies,
-            "Local Accuracies": local_accuracies, 
-            "Local Round Loss": local_round_loss,
-            "Dataset Means": dataset_means,
-            "Dataset STDs": dataset_stds
-            }
+    # print(global_accuracies, "\n") #int
+    # print(local_accuracies, "\n") #int
+    # print(dataset_means, "\n")
+    # print(dataset_stds, "\n")
+    # print(dataset_tensor_similarities, "\n")
+    # print(label_distribution_similarities, "\n")
+
+    # data = {"Global Accuracies": global_accuracies,
+    #         "Local Accuracies": local_accuracies, 
+    #         "Local Round Loss": local_round_loss,
+    #         "Dataset Means": dataset_means,
+    #         "Dataset STDs": dataset_stds
+    #         }
     
-    df = pd.DataFrame(data)
+    # df = pd.DataFrame(data)
 
-    df.to_csv("measurement.csv")
+    # df.to_csv("measurement.csv")
 
-    df1 = pd.DataFrame(np.array(dataset_tensor_similarities))
-    df2 = pd.DataFrame(np.array(label_distribution_similarities))
+    # df1 = pd.DataFrame(np.array(dataset_tensor_similarities))
+    # df2 = pd.DataFrame(np.array(label_distribution_similarities))
 
-    df1.to_csv("measurement_tensor_similarities.csv")
-    df2.to_csv("measurement_label_similarities.csv")
-
+    # df1.to_csv("measurement_tensor_similarities.csv")
+    # df2.to_csv("measurement_label_similarities.csv")
 
 
 
@@ -181,7 +209,7 @@ if __name__ == '__main__':
     training_count = 0
     gm_arrival_count = 0
 
-    training_count_treshold = 5
+    training_count_treshold = 20
     
     DataStorage = ds()
     AD = Analyser()
@@ -201,23 +229,13 @@ if __name__ == '__main__':
         DataStorage.add_global_accuracy(global_model_performance_data)#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage)
         training_count += 1
         logging.info(f'--- Training Done ---')
 
-        DataStorage.add_local_round_loss(round_loss)
-        DataStorage.add_train_dataset_tensors(train_dataset_tensors)
-
-        DataStorage.add_dataset_mean(AD.calculate_dataset_mean(train_dataset_tensors))
-        DataStorage.add_dataset_std(AD.calculate_dataset_std(train_dataset_tensors))
-
-        train_dataset_list = DataStorage.train_dataset_tensors_list
-        cossim = AD.cosine_similarity(train_dataset_list, train_dataset_list[-1])
-        
-        DataStorage.add_cosinesimilarity(cossim)
-
         # Local Model evaluation (id, accuracy)
-        accuracy = compute_performance(models, prep_test_data(), True)
+        accuracy, labels_accuracy = compute_performance(models, prep_test_data(), True)
+        DataStorage.add_label_accuracy(labels_accuracy)
         DataStorage.add_local_accuracy(accuracy)
         fl_client.send_trained_model(models, int(TrainingMetaData.num_training_data), accuracy)
 
