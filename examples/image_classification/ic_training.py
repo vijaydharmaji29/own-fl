@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import math
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -57,45 +58,8 @@ class DataManger:
         n_labels = 10
         order_labels = np.arange(n_labels)
         order_labels = np.random.permutation(order_labels) #this is the order of distributions, comment it out to keep the same label skewed
+        order_labels = np.array(order_labels)
 
-
-        if(last_accuracy[0] !=  last_accuracy[1]):
-            la = last_accuracy[:]
-            order_labels = []
-            while(len(la) > 0):
-                index = 0
-                highest = la[0]
-                for i in range(len(la)):
-                    if la[i] > highest:
-                        index = i
-                        highest = la[i]
-
-                count = last_accuracy.count(highest)
-                        
-                if count >= 2:
-                    for i in range(len(last_accuracy)):
-                        if last_accuracy[i] == highest:
-                            order_labels.append(i)
-                            la.pop(la.index(highest))
-                else:
-                    last_accuracy_index = last_accuracy.index(highest)
-                    order_labels.append(last_accuracy_index)
-                    la.pop(index)
-
-            print("Inside order = ", order)
-
-            if order == False: #to have both positively skewed and negatively skewed dataset
-                order_labels = order_labels[::-1]
-                print("running order reverse")
-
-            order_labels = np.array(order_labels)
-            print(order_labels)
-
-
-
-        # order_labels = np.arange(n_labels) #keeping it skewed dataset
-        # order_labels = np.arange(n_labels)
-        # order_labels = np.random.permutation(order_labels)
 
         train_indices = []
         max_indices = N*.1
@@ -123,6 +87,12 @@ class DataManger:
                 print(max_count_per_label)
 
         #train_indices = shuffled_indices[:int(N*.1)] #for random distribution
+        
+        training_label_distribution = [0]*n_labels
+        for i in max_count_per_label:
+            training_label_distribution[i] = max_count_per_label[i]
+            
+        self.dataset_similarity_score = similarity_score(training_label_distribution, last_accuracy)
         
         self.pt = torch.utils.data.Subset(trainset, train_indices)
         self.public_trainset_PIL = MyDataset(self.pt)
@@ -155,6 +125,49 @@ class DataManger:
 
         return imgs, labels
 
+#converting a distribution to standard normal form
+def convert_to_snf(l):
+    mean = 0
+    N = len(l)
+
+    for i in l:
+        mean += i
+
+    mean = mean/N
+
+    sd = 0
+
+    for i in l:
+        sd += (i - mean)*(i - mean)
+
+    sd = sd/N
+
+    if sd == 0:
+        return l
+
+    sd = math.sqrt(sd)
+
+    new_l = []
+
+    for x in l:
+        new_x = (x - mean)/sd
+        new_l.append(new_x)
+
+    return new_l
+
+def similarity_score(l1, l2): #lower the better
+    l1 = convert_to_snf(l1)
+    l2 = convert_to_snf(l2)
+
+    if(len(l1) != len(l2)):
+        return -1
+
+    score = 0
+
+    for i in range(len(l1)):
+        score += (l1[i] - l2[i])*(l1[i] - l2[i])
+
+    return score
 
 def execute_ic_training(dm, net, criterion, optimizer):
     """

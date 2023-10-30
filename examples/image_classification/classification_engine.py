@@ -78,7 +78,15 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
 
     #returns trained neural network,
     #dataset used for training in terms of tensor (after tranformation)
-    #dataset usef for trainign in terms of PIL (before transformation)
+    #dataset used for trainign in terms of PIL (before transformation)
+
+    similarity_score = dm.dataset_similarity_score
+
+    # test for similarity score
+    print('\n\n\n')
+    print("Similarity Score: ", similarity_score)
+    print('\n\n\n')
+
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
     models = Converter.cvtr().convert_nn_to_dict_nparray(trained_net)
