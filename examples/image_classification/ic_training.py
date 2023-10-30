@@ -34,7 +34,7 @@ class DataManger:
     #         cls._singleton_dm = cls(th)
     #     return cls._singleton_dm
 
-    def __init__(self, cutoff_th: int, last_accuracy = [1]*10):
+    def __init__(self, cutoff_th: int, last_accuracy = [1]*10, order=True):
         transform = transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -61,9 +61,7 @@ class DataManger:
 
         if(last_accuracy[0] !=  last_accuracy[1]):
             la = last_accuracy[:]
-            print(len(last_accuracy))
             order_labels = []
-            print("NOOTT", last_accuracy)
             while(len(la) > 0):
                 index = 0
                 highest = la[0]
@@ -72,25 +70,32 @@ class DataManger:
                         index = i
                         highest = la[i]
 
-                print("Highest", highest)
-
                 count = last_accuracy.count(highest)
+                        
                 if count >= 2:
                     for i in range(len(last_accuracy)):
                         if last_accuracy[i] == highest:
+                            order_labels.append(i)
                             la.pop(la.index(highest))
                 else:
                     last_accuracy_index = last_accuracy.index(highest)
                     order_labels.append(last_accuracy_index)
                     la.pop(index)
 
+            print("Inside order = ", order)
+
+            if order == False: #to have both positively skewed and negatively skewed dataset
+                order_labels = order_labels[::-1]
+                print("running order reverse")
 
             order_labels = np.array(order_labels)
             print(order_labels)
 
 
 
-        order_labels = np.arange(n_labels) #keeping it skewed dataset
+        # order_labels = np.arange(n_labels) #keeping it skewed dataset
+        # order_labels = np.arange(n_labels)
+        # order_labels = np.random.permutation(order_labels)
 
         train_indices = []
         max_indices = N*.1
@@ -102,7 +107,6 @@ class DataManger:
         #adding max count per label
         for i in range(len(order_labels)):
             max_count_per_label[order_labels[i]] = ((i+1) * max_indices / 55)
-
 
         #adding the required images for training
         for i in shuffled_indices:
@@ -118,6 +122,8 @@ class DataManger:
                 print(label_added_count)
                 print(max_count_per_label)
 
+        #train_indices = shuffled_indices[:int(N*.1)] #for random distribution
+        
         self.pt = torch.utils.data.Subset(trainset, train_indices)
         self.public_trainset_PIL = MyDataset(self.pt)
         self.public_trainset = MyDataset(self.pt, transform=transform) #using custom dataset to transform PILImages to tensors for training
@@ -190,7 +196,6 @@ def execute_ic_training(dm, net, criterion, optimizer):
     #OFL
     print("Label distribution: ", label_distribution)
     print("Final running loss for round =", final_running_loss)
-    print("Trainset type: ", type(dm.trainloader))
     return net, final_running_loss, dm.trainloader, dm.public_trainset_PIL
 
 

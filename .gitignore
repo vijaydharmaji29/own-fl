@@ -25,3 +25,8 @@ measurement_label_similarities.csv
 measurment_tensor_similarities.csv
 measurement_tensor_similarities
 measurement.txt
+measurements.txt
+label_accuracy.csv
+fl_main/image_classification/__pycache__
+global_label_accuracy.csv
+test_files

@@ -2,6 +2,7 @@ import logging
 from typing import Dict
 import csv
 import pandas as pd
+import sys
 
 
 import numpy as np
@@ -19,6 +20,8 @@ from fl_main.agent.client import Client
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
+name = ""
+
 class TrainingMetaData:
     # The number of training data used for each round
     # This will be used for the weighted averaging
@@ -34,7 +37,7 @@ def init_models() -> Dict[str,np.array]:
     net = Net()
     return Converter.cvtr().convert_nn_to_dict_nparray(net)
 
-def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None) -> Dict[str,np.array]:
+def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None, order = True) -> Dict[str,np.array]:
     """
     A place holder function for each ML application
     Return the trained models
@@ -69,7 +72,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     if len(DataStorage.label_accuracy) > 0:
         last_accuracy = DataStorage.label_accuracy[-1]
 
-    dm = DataManger(int(TrainingMetaData.num_training_data / 4), last_accuracy)
+    dm = DataManger(int(TrainingMetaData.num_training_data / 4), last_accuracy, order)
     print("ds label accuracy:", last_accuracy)
     data_object_for_training = dm #instance of DataManager object
 
@@ -160,37 +163,42 @@ def write_analysis(DataStorage):
 
     print("\n\nPRINTING ANALYSIS\n\n")
     print(local_accuracies)
-    with open("measurements.txt",'w') as f:
-        for i in local_accuracies:
-            f.write(str(i))
+    print(DataStorage.get_global_accuracies())
 
-    # print(global_accuracies, "\n") #int
-    # print(local_accuracies, "\n") #int
-    # print(dataset_means, "\n")
-    # print(dataset_stds, "\n")
-    # print(dataset_tensor_similarities, "\n")
-    # print(label_distribution_similarities, "\n")
+    print('\n\nLABEL ACCURACIES\n\n')
+    labels_accuracy = DataStorage.label_accuracy
 
-    # data = {"Global Accuracies": global_accuracies,
-    #         "Local Accuracies": local_accuracies, 
-    #         "Local Round Loss": local_round_loss,
-    #         "Dataset Means": dataset_means,
-    #         "Dataset STDs": dataset_stds
-    #         }
-    
-    # df = pd.DataFrame(data)
+    df = pd.DataFrame(labels_accuracy)
+    df.to_csv("./test_files/label_accuracy_" + name + ".csv")
 
-    # df.to_csv("measurement.csv")
+    df1 = pd.DataFrame(DataStorage.global_label_accuracy)
+    df1.to_csv("./test_files/global_label_accuracy.csv")
 
-    # df1 = pd.DataFrame(np.array(dataset_tensor_similarities))
-    # df2 = pd.DataFrame(np.array(label_distribution_similarities))
+    print("\n\nGLOBAL LABEL ACCURACIES\n\n")
+    print(DataStorage.global_label_accuracy)
+    print("\n\nDONE\n\n")
 
-    # df1.to_csv("measurement_tensor_similarities.csv")
-    # df2.to_csv("measurement_label_similarities.csv")
+
+    print("\n\nDONE\n\n")
 
 
 
 if __name__ == '__main__':
+
+    #to check if reverse skewing is enabled
+    try:
+        name = sys.argv[3]
+        order = sys.argv[4]
+        if order == "reverse":
+            order = False
+            print("Reverse is enabled")
+        else:
+            order = True
+    except:
+        order = True
+
+    print("Order = ", order)
+
     logging.basicConfig(level=logging.INFO)
     logging.info('--- Heterogeneity Aware FL with client level intelligenece ---')
 
@@ -198,7 +206,7 @@ if __name__ == '__main__':
     logging.info(f'--- Your IP is {fl_client.agent_ip} ---')
 
     # Create a set of template models (to tell the shapes)
-    initial_models = training(dict(), init_flag=True)
+    initial_models = training(dict(), init_flag=True, order=order)
 
     # Sending initial models
     fl_client.send_initial_model(initial_models)
@@ -209,7 +217,7 @@ if __name__ == '__main__':
     training_count = 0
     gm_arrival_count = 0
 
-    training_count_treshold = 20
+    training_count_treshold = 35
     
     DataStorage = ds()
     AD = Analyser()
@@ -226,10 +234,12 @@ if __name__ == '__main__':
         global_model_performance_data = compute_performance(global_models, prep_test_data(), False)
         #add model to add global model performance data to database
 
-        DataStorage.add_global_accuracy(global_model_performance_data)#this is lagged by one 
+        DataStorage.add_global_label_accuracy(global_model_performance_data[1])
+
+        DataStorage.add_global_accuracy(global_model_performance_data[0])#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order)
         training_count += 1
         logging.info(f'--- Training Done ---')
 
