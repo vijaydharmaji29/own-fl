@@ -32,8 +32,20 @@ class Aggregator:
         """
         denominator = sum(num_samples)
         # weighted average
+
+        if denominator == 0:
+            return buffer[0]
+        
+        start = 0
         model = float(num_samples[0])/denominator * buffer[0]
-        for i in range(1, len(buffer)):
+        while(num_samples[start] == 0 and start < len(buffer)-1):
+            start += 1
+            model = float(num_samples[start])/denominator * buffer[start]
+
+        for i in range(start + 1, len(buffer)):
+            if(num_samples[i] == 0):
+                logging.info('SKIPPING AGGREGATION FOR MODEL')
+                continue
             model += float(num_samples[i])/denominator * buffer[i]
 
         return model

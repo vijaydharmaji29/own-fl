@@ -37,7 +37,7 @@ def init_models() -> Dict[str,np.array]:
     net = Net()
     return Converter.cvtr().convert_nn_to_dict_nparray(net)
 
-def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None, order = True) -> Dict[str,np.array]:
+def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None, similarity_score_treshold = 17, order = True) -> Dict[str,np.array]:
     """
     A place holder function for each ML application
     Return the trained models
@@ -86,6 +86,9 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     print('\n\n\n')
     print("Similarity Score: ", similarity_score)
     print('\n\n\n')
+
+    if similarity_score <= similarity_score_treshold:
+        return models, None, None, None
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
@@ -225,7 +228,8 @@ if __name__ == '__main__':
     training_count = 0
     gm_arrival_count = 0
 
-    training_count_treshold = 35
+    #number of rounds of training to run
+    training_count_treshold = 20
     
     DataStorage = ds()
     AD = Analyser()
@@ -247,7 +251,14 @@ if __name__ == '__main__':
         DataStorage.add_global_accuracy(global_model_performance_data[0])#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order, similarity_score_treshold=20)
+        
+        if(round_loss == None): #condition for checking if client is not participating
+            # Sending initial models
+            logging.info(f'--- FAILED SIMILARITY SCORE TRESHOLD, SKIPPING CURRENT ROUND ---')
+            fl_client.send_initial_model(global_models, num_samples=0, perf_val=-1) #sending sample if similarity score treshold failed
+            continue
+        
         training_count += 1
         logging.info(f'--- Training Done ---')
 
