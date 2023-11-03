@@ -6,7 +6,7 @@ import os
 from typing import Dict, Any
 from threading import Thread
 
-from fl_main.lib.util.communication_handler import init_client_server, send, receive
+from fl_main.lib.util.communication_handler import init_client_server, send, receive, send_websocket
 from fl_main.lib.util.helpers import read_config, init_loop, \
      save_model_file, load_model_file, read_state, write_state, generate_id, \
      set_config_file, get_ip, compatible_data_dict_read, generate_model_id, \
@@ -174,6 +174,11 @@ class Client:
         """
         Starting FL client core functions
         """
+
+        with open('./fl_main/unregistered.txt', 'w') as file:
+            # Read the entire file into a single string
+            file.write("0")
+
         self.register_client()
         if self.is_polling == False:
             self.start_wait_model_server()
@@ -185,6 +190,21 @@ class Client:
         """
         time.sleep(0.5)
         asyncio.get_event_loop().run_until_complete(self.participate())
+
+    def deregister_client(self):
+        with open('./fl_main/unregistered.txt', 'r') as file:
+            # Read the entire file into a single string
+            file_contents = file.read()
+        
+        current = int(file_contents)
+        new = current + 1
+        
+        with open('./fl_main/unregistered.txt', 'w') as file:
+            # Read the entire file into a single string
+            file.write(str(new))
+
+        print("DEREGISTERED CLIENT")
+
     
     def start_wait_model_server(self):
         """

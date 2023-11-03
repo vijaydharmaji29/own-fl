@@ -71,6 +71,15 @@ class StateManager:
             return False
 
         num_agents = int(self.agg_threshold * len(self.agent_set))
+
+        with open('./fl_main/unregistered.txt', 'r') as file:
+            # Read the entire file into a single string
+            file_contents = file.read()
+
+        sub = int(file_contents)
+
+        num_agents -= sub
+
         if num_agents == 0: num_agents = 1
         logging.info(f'--- Aggregation Threshold (Number of agents needed for aggregation): {num_agents} ---')
 

@@ -3,6 +3,7 @@ from typing import Dict
 import csv
 import pandas as pd
 import sys
+import datetime
 
 
 import numpy as np
@@ -87,7 +88,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     print("Similarity Score: ", similarity_score)
     print('\n\n\n')
 
-    if similarity_score <= similarity_score_treshold:
+    if similarity_score <= similarity_score_treshold and similarity_score != 20:
         return models, None, None, None
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
@@ -176,11 +177,22 @@ def write_analysis(DataStorage):
     print(local_accuracies)
     print(DataStorage.get_global_accuracies())
 
+    #make df for local accuracies and global accuracies
+    
+    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
+    df_local_accuracies.to_csv('./test_files/model_local_accuracy_' + name + '.csv')
+
+    df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
+    df_global_accuracies.to_csv('./test_files/model_global_accuracy_' + name + '.csv')
+
+    df_skip_round_times = pd.DataFrame({'Skip Round Time': DataStorage.skip_round_time})
+    df_skip_round_times.to_csv('./test_files/skip_round_time_' + name + '.csv')
+
     print('\n\nLABEL ACCURACIES\n\n')
     labels_accuracy = DataStorage.label_accuracy
 
     df = pd.DataFrame(labels_accuracy)
-    df.to_csv("./test_files/label_accuracy_" + name + ".csv")
+    df.to_csv("./test_files/local_label_accuracy_" + name + ".csv")
 
     df1 = pd.DataFrame(DataStorage.global_label_accuracy)
     df1.to_csv("./test_files/global_label_accuracy.csv")
@@ -227,6 +239,7 @@ if __name__ == '__main__':
 
     training_count = 0
     gm_arrival_count = 0
+    skip_count = 0
 
     #number of rounds of training to run
     training_count_treshold = 20
@@ -237,6 +250,7 @@ if __name__ == '__main__':
     while judge_termination(training_count, gm_arrival_count, training_count_treshold):
 
         print("\n\t TRAINING COUNT: ", training_count, "\n")
+        time_start = datetime.datetime.now()
 
         # Wait for Global models (base models)
         global_models = fl_client.wait_for_global_model()
@@ -251,12 +265,19 @@ if __name__ == '__main__':
         DataStorage.add_global_accuracy(global_model_performance_data[0])#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order, similarity_score_treshold=20)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order, similarity_score_treshold=17)
         
+
         if(round_loss == None): #condition for checking if client is not participating
             # Sending initial models
             logging.info(f'--- FAILED SIMILARITY SCORE TRESHOLD, SKIPPING CURRENT ROUND ---')
             fl_client.send_initial_model(global_models, num_samples=0, perf_val=-1) #sending sample if similarity score treshold failed
+            skip_count += 1
+            time_end = datetime.datetime.now()
+            time_difference = (time_end - time_start).microseconds
+            DataStorage.skip_round_time.append(time_difference)
+            print("SKIP ROUND TIME TAKEN:", time_difference)
+
             continue
         
         training_count += 1
@@ -267,5 +288,11 @@ if __name__ == '__main__':
         DataStorage.add_label_accuracy(labels_accuracy)
         DataStorage.add_local_accuracy(accuracy)
         fl_client.send_trained_model(models, int(TrainingMetaData.num_training_data), accuracy)
+        time_end = datetime.datetime.now()
+        time_difference = (time_end - time_start).microseconds
+        DataStorage.round_time.append(time_difference)
+        print("TRAINING ROUND TIME TAKEN:", time_difference)
 
     write_analysis(DataStorage)
+    fl_client.deregister_client()
+

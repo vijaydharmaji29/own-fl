@@ -2,6 +2,7 @@
     "aggr_ip": "localhost",
     "db_ip": "localhost",
     "reg_socket": "8765",
+    "dereg_socket": "8766",
     "exch_socket": "7890",
     "recv_socket": "4321",
     "db_socket": "9017",

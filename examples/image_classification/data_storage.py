@@ -23,6 +23,8 @@ class DataStorage:
         self.cossim_list = [] #similarity of dataset distribution of each round with their previous rounds (nxn matrix -> in essence)
         self.label_accuracy = []
         self.global_label_accuracy = []
+        self.round_time = []
+        self.skip_round_time = []
     #calculates cosine similarity of 2 lists of numbers
     def dot_product(self, l1, l2):
         if len(l1) != len(l2):
