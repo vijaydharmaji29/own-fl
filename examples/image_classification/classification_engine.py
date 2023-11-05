@@ -213,16 +213,16 @@ if __name__ == '__main__':
     #to check if reverse skewing is enabled
     try:
         name = sys.argv[3]
-        order = sys.argv[4]
-        if order == "reverse":
-            order = False
-            print("Reverse is enabled")
-        else:
-            order = True
-    except:
-        order = True
+        rounds_arg = int(sys.argv[4])
+        similarity_score_arg = int(sys.argv[5])
 
-    print("Order = ", order)
+    except:
+        rounds_arg = 20
+        similarity_score_arg = 17
+
+    order = True
+    print("TRAINING COUNT:", rounds_arg)
+    print("SIMILARITY SCORE TRESHOLD:", similarity_score_arg)
 
     logging.basicConfig(level=logging.INFO)
     logging.info('--- Heterogeneity Aware FL with client level intelligenece ---')
@@ -244,10 +244,10 @@ if __name__ == '__main__':
     skip_count = 0
 
     #number of rounds of training to run
-    training_count_treshold = 2
+    training_count_treshold = rounds_arg
 
     #similarity score treshold for client participation
-    similarity_score_treshold = 0
+    similarity_score_treshold = similarity_score_arg
     
     DataStorage = ds()
     AD = Analyser()
