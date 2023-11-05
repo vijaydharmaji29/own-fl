@@ -191,21 +191,6 @@ class Client:
         time.sleep(0.5)
         asyncio.get_event_loop().run_until_complete(self.participate())
 
-    def deregister_client(self):
-        with open('./fl_main/unregistered.txt', 'r') as file:
-            # Read the entire file into a single string
-            file_contents = file.read()
-        
-        current = int(file_contents)
-        new = current + 1
-        
-        with open('./fl_main/unregistered.txt', 'w') as file:
-            # Read the entire file into a single string
-            file.write(str(new))
-
-        print("DEREGISTERED CLIENT")
-
-    
     def start_wait_model_server(self):
         """
         Start a thread for waiting for global models

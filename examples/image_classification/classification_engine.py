@@ -88,7 +88,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     print("Similarity Score: ", similarity_score)
     print('\n\n\n')
 
-    if similarity_score <= similarity_score_treshold and similarity_score != 20:
+    if similarity_score <= similarity_score_treshold and (similarity_score < 19.9 or similarity_score > 20.1):
         return models, None, None, None
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
@@ -208,6 +208,8 @@ def write_analysis(DataStorage):
 
 if __name__ == '__main__':
 
+    import fl_main.agent.communication_client as communication_client
+
     #to check if reverse skewing is enabled
     try:
         name = sys.argv[3]
@@ -242,10 +244,15 @@ if __name__ == '__main__':
     skip_count = 0
 
     #number of rounds of training to run
-    training_count_treshold = 20
+    training_count_treshold = 2
+
+    #similarity score treshold for client participation
+    similarity_score_treshold = 0
     
     DataStorage = ds()
     AD = Analyser()
+
+    communication_client.send("WELCOME MESSAGE!")
 
     while judge_termination(training_count, gm_arrival_count, training_count_treshold):
 
@@ -265,7 +272,7 @@ if __name__ == '__main__':
         DataStorage.add_global_accuracy(global_model_performance_data[0])#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order, similarity_score_treshold=17)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order, similarity_score_treshold=similarity_score_treshold)
         
 
         if(round_loss == None): #condition for checking if client is not participating
@@ -294,5 +301,6 @@ if __name__ == '__main__':
         print("TRAINING ROUND TIME TAKEN:", time_difference)
 
     write_analysis(DataStorage)
-    fl_client.deregister_client()
+    communication_client.send_deregister_message()
+    print("SENT DEREGISTER MESSAGE")
 

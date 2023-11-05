@@ -28,6 +28,8 @@ class StateManager:
     - cluster model
     """
 
+    DEREGISTERED = 0
+
     def __init__(self):
         # unique ID for the aggregator
         self.id = generate_id()
@@ -76,9 +78,10 @@ class StateManager:
             # Read the entire file into a single string
             file_contents = file.read()
 
-        sub = int(file_contents)
-
-        num_agents -= sub
+        #not that sub par deregsiter coder
+        num_agents -= self.DEREGISTERED
+        
+        #not that sub par deregsiter coder ends here
 
         if num_agents == 0: num_agents = 1
         logging.info(f'--- Aggregation Threshold (Number of agents needed for aggregation): {num_agents} ---')
