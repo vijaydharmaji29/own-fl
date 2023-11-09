@@ -92,7 +92,8 @@ class DataManger:
         for i in max_count_per_label:
             training_label_distribution[i] = max_count_per_label[i]
             
-        self.dataset_similarity_score = similarity_score(training_label_distribution, last_accuracy)
+        #self.dataset_similarity_score = similarity_score(training_label_distribution, last_accuracy)
+        self.dataset_bhattacharya_distance = bhattacharya_distance(training_label_distribution, last_accuracy)
         
         self.pt = torch.utils.data.Subset(trainset, train_indices)
         self.public_trainset_PIL = MyDataset(self.pt)
@@ -168,6 +169,20 @@ def similarity_score(l1, l2): #lower the better
         score += (l1[i] - l2[i])*(l1[i] - l2[i])
 
     return score
+
+def bhattacharya_distance(l1, l2):
+    #getting pdf
+    l1 = [x/sum(l1) for x in l1] 
+    l2 = [x/sum(l2) for x in l2]
+
+    bc = 0
+
+    for i in range(len(l1)):
+        bc += math.sqrt(l1[i]*l2[i])
+    
+    bd = -math.log(bc)
+
+    return bd
 
 def execute_ic_training(dm, net, criterion, optimizer):
     """

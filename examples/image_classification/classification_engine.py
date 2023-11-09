@@ -83,14 +83,17 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     #dataset used for training in terms of tensor (after tranformation)
     #dataset used for trainign in terms of PIL (before transformation)
 
-    similarity_score = dm.dataset_similarity_score
+    #similarity_score = dm.dataset_similarity_score
+    bhattacharya_distance = (dm.dataset_bhattacharya_distance)
+    similarity_score = bhattacharya_distance*1000
 
     # test for similarity score
     print('\n\n\n')
     print("Similarity Score: ", similarity_score)
+    print("Bhattacharya Distance: ", bhattacharya_distance)
     print('\n\n\n')
 
-    if similarity_score <= similarity_score_treshold and (similarity_score < 19.9 or similarity_score > 20.1):
+    if similarity_score <= similarity_score_treshold:
         return models, None, None, None
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
@@ -220,7 +223,7 @@ if __name__ == '__main__':
 
     except:
         rounds_arg = 20
-        similarity_score_arg = 17
+        similarity_score_arg = 35
 
     order = True
     print("TRAINING COUNT:", rounds_arg)
