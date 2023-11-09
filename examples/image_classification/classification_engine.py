@@ -4,6 +4,7 @@ import csv
 import pandas as pd
 import sys
 import datetime
+import threading
 
 
 import numpy as np
@@ -18,6 +19,7 @@ from .analyse_dataset import Analyser
 from .data_storage import DataStorage as ds
 
 from fl_main.agent.client import Client
+from .system_measurement import SystemMeasurement
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -179,7 +181,7 @@ def write_analysis(DataStorage):
 
     #make df for local accuracies and global accuracies
     
-    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
+    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time, 'Round participation': DataStorage.participation_list})
     df_local_accuracies.to_csv('./test_files/model_local_accuracy_' + name + '.csv')
 
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
@@ -229,6 +231,11 @@ if __name__ == '__main__':
 
     fl_client = Client()
     logging.info(f'--- Your IP is {fl_client.agent_ip} ---')
+
+    #for starting system measurement thread
+    sm = SystemMeasurement(name)
+    sys_thread = threading.Thread(target=sm.start_measurement)
+    sys_thread.start()
 
     # Create a set of template models (to tell the shapes)
     initial_models = training(dict(), init_flag=True, order=order)
@@ -284,7 +291,7 @@ if __name__ == '__main__':
             time_difference = (time_end - time_start).microseconds
             DataStorage.skip_round_time.append(time_difference)
             print("SKIP ROUND TIME TAKEN:", time_difference)
-
+            DataStorage.participation_list.append(False)
             continue
         
         training_count += 1
@@ -298,9 +305,11 @@ if __name__ == '__main__':
         time_end = datetime.datetime.now()
         time_difference = (time_end - time_start).microseconds
         DataStorage.round_time.append(time_difference)
+        DataStorage.participation_list.append(True)
         print("TRAINING ROUND TIME TAKEN:", time_difference)
 
     write_analysis(DataStorage)
+    sm.write_analysis()
     communication_client.send_deregister_message()
     print("SENT DEREGISTER MESSAGE")
 

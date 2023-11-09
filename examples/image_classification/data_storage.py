@@ -25,6 +25,7 @@ class DataStorage:
         self.global_label_accuracy = []
         self.round_time = []
         self.skip_round_time = []
+        self.participation_list = []
     #calculates cosine similarity of 2 lists of numbers
     def dot_product(self, l1, l2):
         if len(l1) != len(l2):
