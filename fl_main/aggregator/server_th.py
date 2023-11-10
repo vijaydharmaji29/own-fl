@@ -7,6 +7,7 @@ formed after collecting enough local models.
 '''
 
 import asyncio, logging, time, numpy as np
+import threading
 from typing import List, Dict, Any
 
 from fl_main.lib.util.communication_handler import init_fl_server, send, send_websocket, receive 
@@ -19,6 +20,7 @@ from fl_main.lib.util.states import ParticipateMSGLocation, ModelUpMSGLocation, 
 
 from .state_manager import StateManager
 from .aggregation import Aggregator
+from .communication_server import start_comm_server
 
 
 class Server:
@@ -300,6 +302,11 @@ if __name__ == "__main__":
 
     s = Server()
     logging.info("--- Aggregator Started ---")
+
+    #starting communication server
+    print("[STARTING] Communication server is starting...")
+    main_thread = threading.Thread(target=start_comm_server)
+    main_thread.start()
 
     init_fl_server(s.register, 
                    s.receive_msg_from_agent, 

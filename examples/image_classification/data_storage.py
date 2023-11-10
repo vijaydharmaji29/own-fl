@@ -1,3 +1,5 @@
+#OWN FL FILE
+
 import torch
 import torchvision
 import torchvision.transforms as T
@@ -19,7 +21,12 @@ class DataStorage:
         self.label_distribution = [] #number of each label of each round
         self.label_distribution_similarity_list = [] #similarity of label distribution of each round with their previous rounds(nxn matrix -> in essence), gets added in 'add_dataset_tensors'
         self.cossim_list = [] #similarity of dataset distribution of each round with their previous rounds (nxn matrix -> in essence)
-
+        self.label_accuracy = []
+        self.global_label_accuracy = []
+        self.round_time = []
+        self.skip_round_time = []
+        self.participation_list = []
+        self.simialrity_scores = []
     #calculates cosine similarity of 2 lists of numbers
     def dot_product(self, l1, l2):
         if len(l1) != len(l2):
@@ -117,6 +124,12 @@ class DataStorage:
 
     def add_cosinesimilarity(self, sim):
         self.cossim_list.append(sim)
+
+    def add_label_accuracy(self, la):
+        self.label_accuracy.append(la)
+
+    def add_global_label_accuracy(self, la):
+        self.global_label_accuracy.append(la)
     
     #write get functions from here on
 
