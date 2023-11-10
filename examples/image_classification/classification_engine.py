@@ -76,7 +76,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
         last_accuracy = DataStorage.label_accuracy[-1]
 
     dm = DataManger(int(TrainingMetaData.num_training_data / 4), last_accuracy, order)
-    print("ds label accuracy:", last_accuracy)
+    print("DataStorage label accuracy:", last_accuracy)
     data_object_for_training = dm #instance of DataManager object
 
     #returns trained neural network,
@@ -86,6 +86,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     #similarity_score = dm.dataset_similarity_score
     bhattacharya_distance = (dm.dataset_bhattacharya_distance)
     similarity_score = bhattacharya_distance*1000
+    DataStorage.simialrity_scores.append(similarity_score)
 
     # test for similarity score
     print('\n\n\n')
@@ -167,7 +168,7 @@ def prep_test_data():
     testdata = 0
     return testdata
 
-def write_analysis(DataStorage):
+def write_analysis(DataStorage, SystemMeasurement):
     # global_accuracies = DataStorage.get_global_accuracies()
     # local_accuracies = DataStorage.get_local_accuracies()
     # local_round_loss = DataStorage.get_local_round_loss()
@@ -178,9 +179,7 @@ def write_analysis(DataStorage):
 
     local_accuracies = DataStorage.get_local_accuracies()
 
-    print("\n\nPRINTING ANALYSIS\n\n")
-    print(local_accuracies)
-    print(DataStorage.get_global_accuracies())
+    print("\n\WRITING ANALYSIS")
 
     #make df for local accuracies and global accuracies
     
@@ -190,24 +189,25 @@ def write_analysis(DataStorage):
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
     df_global_accuracies.to_csv('./test_files/model_global_accuracy_' + name + '.csv')
 
+    df_similarity_scores = pd.DataFrame({"Simialirity Score": DataStorage.simialrity_scores})
+    df_similarity_scores.to_csv('./test_files/model_similarity_scores_' + name + '.csv')
+
     df_skip_round_times = pd.DataFrame({'Skip Round Time': DataStorage.skip_round_time})
     df_skip_round_times.to_csv('./test_files/skip_round_time_' + name + '.csv')
 
-    print('\n\nLABEL ACCURACIES\n\n')
+
+    df_cpu_ram_utilisation = pd.DataFrame({'Average CPU Utilisation': SystemMeasurement.cpu_average_utilisation, "Average RAM Utilisation": SystemMeasurement.ram_average_utilisation})
+    df_cpu_ram_utilisation.to_csv('./test_files/system_av_utilisation_' + name + '.csv')
+
     labels_accuracy = DataStorage.label_accuracy
 
     df = pd.DataFrame(labels_accuracy)
     df.to_csv("./test_files/local_label_accuracy_" + name + ".csv")
 
-    df1 = pd.DataFrame(DataStorage.global_label_accuracy)
-    df1.to_csv("./test_files/global_label_accuracy.csv")
+    df_global_label_accuracies = pd.DataFrame(DataStorage.global_label_accuracy)
+    df_global_label_accuracies.to_csv("./test_files/global_label_accuracy.csv")
 
-    print("\n\nGLOBAL LABEL ACCURACIES\n\n")
-    print(DataStorage.global_label_accuracy)
-    print("\n\nDONE\n\n")
-
-
-    print("\n\nDONE\n\n")
+    print("DONE\n\n")
 
 
 
@@ -222,8 +222,8 @@ if __name__ == '__main__':
         similarity_score_arg = int(sys.argv[5])
 
     except:
-        rounds_arg = 20
-        similarity_score_arg = 35
+        rounds_arg = 25
+        similarity_score_arg = 0
 
     order = True
     print("TRAINING COUNT:", rounds_arg)
@@ -267,6 +267,7 @@ if __name__ == '__main__':
     while judge_termination(training_count, gm_arrival_count, training_count_treshold):
 
         print("\n\t TRAINING COUNT: ", training_count, "\n")
+        sm.start_round()
         time_start = datetime.datetime.now()
 
         # Wait for Global models (base models)
@@ -310,9 +311,11 @@ if __name__ == '__main__':
         DataStorage.round_time.append(time_difference)
         DataStorage.participation_list.append(True)
         print("TRAINING ROUND TIME TAKEN:", time_difference)
+        sm.end_round()
 
-    write_analysis(DataStorage)
-    sm.write_analysis()
+    write_analysis(DataStorage, sm)
+    sm.write_analysis() #system manager anaylysis
     communication_client.send_deregister_message()
     print("SENT DEREGISTER MESSAGE")
+    sys.exit()
 
