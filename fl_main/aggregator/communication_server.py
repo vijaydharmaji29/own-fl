@@ -1,11 +1,15 @@
 import socket
 import threading
 from .state_manager import StateManager
+from fl_main.lib.util.helpers import read_config, set_config_file
  
 
+config_file = set_config_file("aggregator")
+config = read_config(config_file)
+
 HEADER = 64
-PORT = 5050
-SERVER = "localhost"
+PORT = config['comm_port']
+SERVER = config['aggr_ip']
 print(SERVER)
 ADDR = (SERVER, PORT)
 FORMAT = "utf-8"

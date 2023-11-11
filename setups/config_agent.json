@@ -1,5 +1,6 @@
 {
   "aggr_ip": "localhost",
+  "comm_port": 7777,
   "reg_socket": "8765",
   "dereg_socket": "8766",
   "model_path": "./data/agents",
