@@ -1,9 +1,14 @@
 import socket
+from fl_main.lib.util.helpers import read_config, set_config_file
+ 
+config_file = set_config_file("agent")
+config = read_config(config_file)
 
 HEADER = 64
-PORT = 5050
-SERVER = "localhost"
+PORT = config['comm_port']
+SERVER = config['aggr_ip']
 ADDR = (SERVER, PORT)
+print("SERVER:", SERVER, "PORT:", PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 DEREGISTER_MESSAGE = "!DEREGISTER"
