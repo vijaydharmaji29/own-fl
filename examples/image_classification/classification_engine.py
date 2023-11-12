@@ -315,7 +315,7 @@ if __name__ == '__main__':
 
     write_analysis(DataStorage, sm)
     sm.write_analysis() #system manager anaylysis
-    #communication_client.send_deregister_message()
+    communication_client.send_deregister_message()
     print("SENT DEREGISTER MESSAGE")
     sys.exit()
 
