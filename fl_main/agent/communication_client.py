@@ -8,6 +8,7 @@ HEADER = 64
 PORT = config['comm_port']
 SERVER = config['aggr_ip']
 ADDR = (SERVER, PORT)
+print("SERVER:", SERVER, "PORT:", PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 DEREGISTER_MESSAGE = "!DEREGISTER"

@@ -11,6 +11,7 @@ HEADER = 64
 PORT = config['comm_port']
 SERVER = config['aggr_ip']
 print(SERVER)
+print("SEVRER STARTED ON:", config['aggr_ip'], "PORT:", config['comm_port'])
 ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
