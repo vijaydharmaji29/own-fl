@@ -213,7 +213,7 @@ def write_analysis(DataStorage, SystemMeasurement):
 
 if __name__ == '__main__':
 
-    import fl_main.agent.communication_client as communication_client
+    #import fl_main.agent.communication_client as communication_client
 
     #to check if reverse skewing is enabled
     try:
@@ -262,7 +262,7 @@ if __name__ == '__main__':
     DataStorage = ds()
     AD = Analyser()
 
-    communication_client.send("WELCOME MESSAGE!")
+    #communication_client.send("WELCOME MESSAGE!")
 
     while judge_termination(training_count, gm_arrival_count, training_count_treshold):
 
@@ -315,7 +315,7 @@ if __name__ == '__main__':
 
     write_analysis(DataStorage, sm)
     sm.write_analysis() #system manager anaylysis
-    communication_client.send_deregister_message()
+    #communication_client.send_deregister_message()
     print("SENT DEREGISTER MESSAGE")
     sys.exit()
 
