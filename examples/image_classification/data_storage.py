@@ -27,6 +27,8 @@ class DataStorage:
         self.skip_round_time = []
         self.participation_list = []
         self.simialrity_scores = []
+        self.system_scores = []
+        self.overall_scores = []
     #calculates cosine similarity of 2 lists of numbers
     def dot_product(self, l1, l2):
         if len(l1) != len(l2):

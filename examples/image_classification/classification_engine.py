@@ -40,7 +40,7 @@ def init_models() -> Dict[str,np.array]:
     net = Net()
     return Converter.cvtr().convert_nn_to_dict_nparray(net)
 
-def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None, similarity_score_treshold = 17, order = True) -> Dict[str,np.array]:
+def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = None, SystemMeasurement=None, similarity_score_treshold = 17, order = True, overall_score_threshold = 0) -> Dict[str,np.array]:
     """
     A place holder function for each ML application
     Return the trained models
@@ -92,9 +92,22 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     print('\n\n\n')
     print("Similarity Score: ", similarity_score)
     print("Bhattacharya Distance: ", bhattacharya_distance)
+
+    system_score, system_overide = SystemMeasurement.getSystemScore(DataStorage)
+    DataStorage.system_scores.append(system_score)
+
+    if(system_overide):
+        print("SYSTEM PERFORMANCE OVERIDE")
+    else:
+        print("PREV ROUND TIME:", DataStorage.round_time[-1])
+        print("SYSTEM SCORE:", system_score)
     print('\n\n\n')
 
-    if similarity_score <= similarity_score_treshold:
+    overall_score = system_score*similarity_score
+
+    DataStorage.overall_scores.append(overall_score)
+
+    if not system_overide and overall_score < overall_score_threshold:
         return models, None, None, None
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
@@ -189,8 +202,8 @@ def write_analysis(DataStorage, SystemMeasurement):
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
     df_global_accuracies.to_csv('./test_files/model_global_accuracy_' + name + '.csv')
 
-    df_similarity_scores = pd.DataFrame({"Simialirity Score": DataStorage.simialrity_scores})
-    df_similarity_scores.to_csv('./test_files/model_similarity_scores_' + name + '.csv')
+    df_scores = pd.DataFrame({"Simialirity Scores": DataStorage.simialrity_scores, "System Scores": DataStorage.system_scores, "Overall Scores:": DataStorage.overall_scores})
+    df_scores.to_csv('./test_files/model_scores_' + name + '.csv')
 
     df_skip_round_times = pd.DataFrame({'Skip Round Time': DataStorage.skip_round_time})
     df_skip_round_times.to_csv('./test_files/skip_round_time_' + name + '.csv')
@@ -210,7 +223,6 @@ def write_analysis(DataStorage, SystemMeasurement):
     print("DONE\n\n")
 
 
-
 if __name__ == '__main__':
 
     import fl_main.agent.communication_client as communication_client
@@ -219,15 +231,15 @@ if __name__ == '__main__':
     try:
         name = sys.argv[3]
         rounds_arg = int(sys.argv[4])
-        similarity_score_arg = int(sys.argv[5])
+        overall_score_arg = int(sys.argv[5])
 
     except:
         rounds_arg = 25
-        similarity_score_arg = 0
+        overall_score_arg = 0
 
     order = True
     print("TRAINING COUNT:", rounds_arg)
-    print("SIMILARITY SCORE TRESHOLD:", similarity_score_arg)
+    print("OVERALL SCORE TRESHOLD:", overall_score_arg)
 
     logging.basicConfig(level=logging.INFO)
     logging.info('--- Heterogeneity Aware FL with client level intelligenece ---')
@@ -257,7 +269,7 @@ if __name__ == '__main__':
     training_count_treshold = rounds_arg
 
     #similarity score treshold for client participation
-    similarity_score_treshold = similarity_score_arg
+    overall_score_threshold = overall_score_arg
     
     DataStorage = ds()
     AD = Analyser()
@@ -283,7 +295,7 @@ if __name__ == '__main__':
         DataStorage.add_global_accuracy(global_model_performance_data[0])#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, order=order, similarity_score_treshold=similarity_score_treshold)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, SystemMeasurement=sm, order=order, overall_score_threshold=overall_score_threshold)
         
 
         if(round_loss == None): #condition for checking if client is not participating
