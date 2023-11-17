@@ -64,6 +64,17 @@ class SystemMeasurement:
             return DataStorage.round_time[-1], False
         else:
             return self.predict_round_time(DataStorage), False
+        
+
+    def getDefaultSystemScore(self, DataStorage):
+        n = len(DataStorage.round_time)
+        
+        if(n == 0):
+            return 0, True
+        else:
+            return DataStorage.round_time[-1], False
+            
+
 
     def predict_round_time(self, DataStorage):
         if DataStorage.participation_list[-1]: #i.e did participate in prev round
@@ -98,8 +109,7 @@ class SystemMeasurement:
 
     def make_prediction(self, beta):
         beta0, beta1, beta2 = beta
-        pred = beta0 + beta1*self.cpu_utilisation[-1][-1] + beta2*self.ram_utilisation[-1][-1]
+        pred = beta0 + beta1*self.cpu_utilisation[-1][-1] + beta2*self.ram_utilisation[-1][-1] #maybe make this the average
 
         return pred
-        
-            
+
