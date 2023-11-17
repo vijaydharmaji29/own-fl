@@ -103,12 +103,14 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
         print("SYSTEM SCORE:", system_score)
     print('\n\n\n')
 
-    overall_score = system_score*similarity_score
 
-    DataStorage.overall_scores.append(overall_score)
-
-    if not system_overide and overall_score < overall_score_threshold:
-        return models, None, None, None
+    if not system_overide:
+        overall_score = similarity_score*1000000/system_score
+        DataStorage.overall_scores.append(overall_score)
+        if overall_score < overall_score_threshold:
+            return models, None, None, None
+    else:
+        DataStorage.overall_scores.append(0)
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
