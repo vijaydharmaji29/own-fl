@@ -93,7 +93,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     print("Similarity Score: ", similarity_score)
     print("Bhattacharya Distance: ", bhattacharya_distance)
 
-    system_score, system_overide = SystemMeasurement.getSystemScore(DataStorage)
+    system_score, system_overide = SystemMeasurement.getDefaultSystemScore(DataStorage)
     DataStorage.system_scores.append(system_score)
 
     if(system_overide):
@@ -103,12 +103,14 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
         print("SYSTEM SCORE:", system_score)
     print('\n\n\n')
 
-    overall_score = system_score*similarity_score
 
-    DataStorage.overall_scores.append(overall_score)
-
-    if not system_overide and overall_score < overall_score_threshold:
-        return models, None, None, None
+    if not system_overide:
+        overall_score = similarity_score*1000000/system_score
+        DataStorage.overall_scores.append(overall_score)
+        if overall_score < overall_score_threshold:
+            return models, None, None, None
+    else:
+        DataStorage.overall_scores.append(0)
 
     trained_net, round_loss, train_dataset_tensors, trainset_dataset_PIL = execute_ic_training(data_object_for_training, net, criterion, optimizer)
     
@@ -220,6 +222,12 @@ def write_analysis(DataStorage, SystemMeasurement):
     df_global_label_accuracies = pd.DataFrame(DataStorage.global_label_accuracy)
     df_global_label_accuracies.to_csv("./test_files/global_label_accuracy.csv")
 
+    file_process_time = open("./test_files/file_process_time_" + name + ".txt", "w")
+    file_process_time.write("Process start time: " + str(DataStorage.process_start_time) + "\n")
+    file_process_time.write("Process end time:  " + str(DataStorage.process_end_time) + "\n")
+    file_process_time.write("Full process time: " + str(DataStorage.process_whole_time))
+    file_process_time.close()
+
     print("DONE\n\n")
 
 
@@ -297,7 +305,8 @@ if __name__ == '__main__':
         # Training
         models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, SystemMeasurement=sm, order=order, overall_score_threshold=overall_score_threshold)
         
-
+        training_count += 1
+        
         if(round_loss == None): #condition for checking if client is not participating
             # Sending initial models
             logging.info(f'--- FAILED SIMILARITY SCORE TRESHOLD, SKIPPING CURRENT ROUND ---')
@@ -310,7 +319,6 @@ if __name__ == '__main__':
             DataStorage.participation_list.append(False)
             continue
         
-        training_count += 1
         logging.info(f'--- Training Done ---')
 
         # Local Model evaluation (id, accuracy)
@@ -318,13 +326,15 @@ if __name__ == '__main__':
         DataStorage.add_label_accuracy(labels_accuracy)
         DataStorage.add_local_accuracy(accuracy)
         fl_client.send_trained_model(models, int(TrainingMetaData.num_training_data), accuracy)
+        DataStorage.participation_list.append(True)
         time_end = datetime.datetime.now()
         time_difference = (time_end - time_start).microseconds
         DataStorage.round_time.append(time_difference)
-        DataStorage.participation_list.append(True)
         print("TRAINING ROUND TIME TAKEN:", time_difference)
         sm.end_round()
 
+
+    DataStorage.end_full()
     write_analysis(DataStorage, sm)
     sm.write_analysis() #system manager anaylysis
     communication_client.send_deregister_message()

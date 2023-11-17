@@ -5,6 +5,7 @@ import torchvision
 import torchvision.transforms as T
 from PIL import Image
 import math
+import datetime
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -29,6 +30,9 @@ class DataStorage:
         self.simialrity_scores = []
         self.system_scores = []
         self.overall_scores = []
+        self.process_start_time = datetime.datetime.now()
+        self.process_end_time = 0
+        self.process_whole_time = 0
     #calculates cosine similarity of 2 lists of numbers
     def dot_product(self, l1, l2):
         if len(l1) != len(l2):
@@ -179,3 +183,6 @@ class DataStorage:
 
         return sims
 
+    def end_full(self):
+        self.process_end_time = datetime.datetime.now()
+        self.process_whole_time = (self.process_end_time - self.process_start_time).seconds
