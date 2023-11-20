@@ -198,8 +198,11 @@ def write_analysis(DataStorage, SystemMeasurement):
 
     #make df for local accuracies and global accuracies
     
-    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time, 'Round participation': DataStorage.participation_list})
+    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
     df_local_accuracies.to_csv('./test_files/model_local_accuracy_' + name + '.csv')
+
+    df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
+    df_round_participation_list.to_csv('./test_files/round_participation_list_' + name + '.csv')
 
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
     df_global_accuracies.to_csv('./test_files/model_global_accuracy_' + name + '.csv')
@@ -317,6 +320,7 @@ if __name__ == '__main__':
             DataStorage.skip_round_time.append(time_difference)
             print("SKIP ROUND TIME TAKEN:", time_difference)
             DataStorage.participation_list.append(False)
+            sm.end_round()
             continue
         
         logging.info(f'--- Training Done ---')
