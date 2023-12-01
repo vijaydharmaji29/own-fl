@@ -1,13 +1,7 @@
 {
-<<<<<<< HEAD
     "aggr_ip": "localhost",
     "comm_port": 7777,
     "db_ip": "localhost",
-=======
-    "aggr_ip": "10.8.1.161",
-    "comm_port": 7777,
-    "db_ip": "10.8.1.161",
->>>>>>> refs/remotes/origin/main
     "reg_socket": "8765",
     "dereg_socket": "8766",
     "exch_socket": "7890",
