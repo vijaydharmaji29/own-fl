@@ -29,10 +29,12 @@ class StateManager:
     """
 
     DEREGISTERED = 0
+    ROUND_NON_PARTICIPANTS = 0
 
     def __init__(self):
         # unique ID for the aggregator
         self.id = generate_id()
+        self.aggr_overide = False #overide boolean value to skip to next round if no models will be collected in this rond
 
         # informatioin of connected agents
         self.agent_set = list()
@@ -63,14 +65,14 @@ class StateManager:
         # Aggregation threshold to be used for aggregation criteria
         self.agg_threshold = 1
 
-    def ready_for_local_aggregation(self) -> bool:
+    def ready_for_local_aggregation(self):
         """
         Return a bool val to identify if it can starts the aggregation process
         :return: (boolean) True if it has enough local models to aggregate
             False otherwise. The threshold is configured in the JSON config.json
         """
         if len(self.mnames) == 0:
-            return False
+            return False, self.aggr_overide
 
         num_agents = int(self.agg_threshold * len(self.agent_set))
 
@@ -78,11 +80,16 @@ class StateManager:
             # Read the entire file into a single string
             file_contents = file.read()
 
-        #not that sub par deregsiter coder
         num_agents -= self.DEREGISTERED
-        
-        #not that sub par deregsiter coder ends here
 
+        self.aggr_overide = False
+        
+        print("SM INFO:", num_agents, StateManager.ROUND_NON_PARTICIPANTS)
+
+        if num_agents == StateManager.ROUND_NON_PARTICIPANTS and num_agents > 0: #none of the clients passed the threshold
+            self.aggr_overide = True
+        
+        
         if num_agents == 0: num_agents = 1
         logging.info(f'--- Aggregation Threshold (Number of agents needed for aggregation): {num_agents} ---')
 
@@ -91,10 +98,10 @@ class StateManager:
 
         if num_collected_lmodels >= num_agents:
             logging.info(f'--- Enough local models are collected. Aggregation will start. ---')
-            return True
+            return True, self.aggr_overide
         else:
             logging.info(f'--- Waiting for more local models to be collected ---')
-            return False
+            return False, self.aggr_overide
 
     def initialize_model_info(self, lmodels, init_weights_flag):
         """
@@ -215,3 +222,5 @@ class StateManager:
         :return:
         """
         self.round += 1
+        StateManager.ROUND_NON_PARTICIPANTS = 0
+        

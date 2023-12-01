@@ -193,8 +193,6 @@ class Server:
         :return:
         """
         logging.debug(f'--- AgentMsgType.polling ---')
-        # print(f'current round:', self.sm.round)
-        # print(f'reported round:', str(msg[int(PollingMSGLocation.round)]))
         if self.sm.round > int(msg[int(PollingMSGLocation.round)]):
             model_id = self.sm.cluster_model_ids[-1]
             cluster_models = convert_LDict_to_Dict(self.sm.cluster_models)
@@ -216,7 +214,20 @@ class Server:
             # Periodic check (frequency is specified in the JSON config file)
             await asyncio.sleep(self.round_interval)
 
-            if self.sm.ready_for_local_aggregation():  # if it has enough models to aggregate
+            ready_for_aggr, overide_round = self.sm.ready_for_local_aggregation()
+
+            if overide_round:
+                logging.info('No models to be collected this round')
+                logging.info(f'Current agents: {self.sm.agent_set}')
+                self.agg.aggregate_no_models()
+                #await self._push_cluster_models()
+                #sending latest cluster model to all i.e previous round cluester model
+                if self.is_polling == False:
+                    await self._send_cluster_models_to_all()
+                self.sm.increment_round()
+                continue
+
+            if ready_for_aggr and not overide_round:  # if it has enough models to aggregate
                 logging.info(f'Round {self.sm.round}')
                 logging.info(f'Current agents: {self.sm.agent_set}')
 

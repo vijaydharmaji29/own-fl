@@ -5,6 +5,7 @@ import pandas as pd
 import sys
 import datetime
 import threading
+import os
 
 
 import numpy as np
@@ -22,8 +23,6 @@ from fl_main.agent.client import Client
 from .system_measurement import SystemMeasurement
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-
-name = ""
 
 class TrainingMetaData:
     # The number of training data used for each round
@@ -107,6 +106,8 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     if not system_overide:
         overall_score = similarity_score*1000000/system_score
         DataStorage.overall_scores.append(overall_score)
+        # if overall_score < overall_score_threshold: 
+        #     return models, None, None, None
         if overall_score < overall_score_threshold:
             return models, None, None, None
     else:
@@ -183,46 +184,46 @@ def prep_test_data():
     testdata = 0
     return testdata
 
-def write_analysis(DataStorage, SystemMeasurement):
-    # global_accuracies = DataStorage.get_global_accuracies()
-    # local_accuracies = DataStorage.get_local_accuracies()
-    # local_round_loss = DataStorage.get_local_round_loss()
-    # dataset_means = DataStorage.get_dataset_means()
-    # dataset_stds = DataStorage.get_dataset_stds()
-    # dataset_tensor_similarities = DataStorage.get_dataset_tensor_similarities()
-    # label_distribution_similarities = DataStorage.get_label_distribution_similarities()
-
-    local_accuracies = DataStorage.get_local_accuracies()
-
+def write_analysis(DataStorage, SystemMeasurement, name):
     print("\n\WRITING ANALYSIS")
 
+    try:
+        os.mkdir('./test_files_' + name + '/')
+    except:
+        pass
+
+    folder_name =' ./test_files_' + name + '/'
+
     #make df for local accuracies and global accuracies
-    
-    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time, 'Round participation': DataStorage.participation_list})
-    df_local_accuracies.to_csv('./test_files/model_local_accuracy_' + name + '.csv')
+    local_accuracies = DataStorage.get_local_accuracies()
+    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
+    df_local_accuracies.to_csv(folder_name + '/model_local_accuracy_' + name + '.csv')
+
+    df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
+    df_round_participation_list.to_csv(folder_name + '/round_participation_list_' + name + '.csv')
 
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
-    df_global_accuracies.to_csv('./test_files/model_global_accuracy_' + name + '.csv')
+    df_global_accuracies.to_csv(folder_name + '/model_global_accuracy_' + name + '.csv')
 
     df_scores = pd.DataFrame({"Simialirity Scores": DataStorage.simialrity_scores, "System Scores": DataStorage.system_scores, "Overall Scores:": DataStorage.overall_scores})
-    df_scores.to_csv('./test_files/model_scores_' + name + '.csv')
+    df_scores.to_csv(folder_name + '/model_scores_' + name + '.csv')
 
     df_skip_round_times = pd.DataFrame({'Skip Round Time': DataStorage.skip_round_time})
-    df_skip_round_times.to_csv('./test_files/skip_round_time_' + name + '.csv')
+    df_skip_round_times.to_csv(folder_name + '/skip_round_time_' + name + '.csv')
 
 
     df_cpu_ram_utilisation = pd.DataFrame({'Average CPU Utilisation': SystemMeasurement.cpu_average_utilisation, "Average RAM Utilisation": SystemMeasurement.ram_average_utilisation})
-    df_cpu_ram_utilisation.to_csv('./test_files/system_av_utilisation_' + name + '.csv')
+    df_cpu_ram_utilisation.to_csv(folder_name + '/system_av_utilisation_' + name + '.csv')
 
     labels_accuracy = DataStorage.label_accuracy
 
     df = pd.DataFrame(labels_accuracy)
-    df.to_csv("./test_files/local_label_accuracy_" + name + ".csv")
+    df.to_csv(folder_name + "local_label_accuracy_" + name + ".csv")
 
     df_global_label_accuracies = pd.DataFrame(DataStorage.global_label_accuracy)
-    df_global_label_accuracies.to_csv("./test_files/global_label_accuracy.csv")
+    df_global_label_accuracies.to_csv(folder_name + "/global_label_accuracy.csv")
 
-    file_process_time = open("./test_files/file_process_time_" + name + ".txt", "w")
+    file_process_time = open(folder_name + "/file_process_time_" + name + ".txt", "w")
     file_process_time.write("Process start time: " + str(DataStorage.process_start_time) + "\n")
     file_process_time.write("Process end time:  " + str(DataStorage.process_end_time) + "\n")
     file_process_time.write("Full process time: " + str(DataStorage.process_whole_time))
@@ -230,9 +231,7 @@ def write_analysis(DataStorage, SystemMeasurement):
 
     print("DONE\n\n")
 
-
-if __name__ == '__main__':
-
+def run_process(name, rounds_arg, overall_score_arg):
     import fl_main.agent.communication_client as communication_client
 
     #to check if reverse skewing is enabled
@@ -310,6 +309,9 @@ if __name__ == '__main__':
         if(round_loss == None): #condition for checking if client is not participating
             # Sending initial models
             logging.info(f'--- FAILED SIMILARITY SCORE TRESHOLD, SKIPPING CURRENT ROUND ---')
+            communication_client.send_non_participation_message()
+            #fl_client.send_no_models()
+            print("Message Global Models Size Of", sys.getsizeof(global_models))
             fl_client.send_initial_model(global_models, num_samples=0, perf_val=-1) #sending sample if similarity score treshold failed
             skip_count += 1
             time_end = datetime.datetime.now()
@@ -317,11 +319,13 @@ if __name__ == '__main__':
             DataStorage.skip_round_time.append(time_difference)
             print("SKIP ROUND TIME TAKEN:", time_difference)
             DataStorage.participation_list.append(False)
+            sm.end_round()
             continue
         
         logging.info(f'--- Training Done ---')
 
         # Local Model evaluation (id, accuracy)
+        print("Message Global Models Size Of", sys.getsizeof(global_models))
         accuracy, labels_accuracy = compute_performance(models, prep_test_data(), True)
         DataStorage.add_label_accuracy(labels_accuracy)
         DataStorage.add_local_accuracy(accuracy)
@@ -335,9 +339,35 @@ if __name__ == '__main__':
 
 
     DataStorage.end_full()
-    write_analysis(DataStorage, sm)
+    write_analysis(DataStorage, sm, name)
     sm.write_analysis() #system manager anaylysis
     communication_client.send_deregister_message()
     print("SENT DEREGISTER MESSAGE")
     sys.exit()
+
+if __name__ == '__main__':
+    try:
+        name = sys.argv[3]
+        rounds_arg = int(sys.argv[4])
+        overall_score_arg = int(sys.argv[5])
+    except:
+        name = "NoName"
+        rounds_arg = 25
+        overall_score_arg = 0
+
+
+
+    # t = threading.Thread(target=run_process, args=(name, rounds_arg, overall_score_arg))
+    # t.start()
+
+    run_process(name, rounds_arg, overall_score_arg)
+    print("DONE")
+
+    # all_threads = []
+    # for i in range(5):
+    #     new_name = name + "_" + str(i)
+    #     t = threading.Thread(target=run_process, args=(new_name, rounds_arg, overall_score_arg))
+    #     all_threads.append(t)
+    #     t.start()
+    
 

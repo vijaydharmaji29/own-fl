@@ -30,3 +30,6 @@ label_accuracy.csv
 fl_main/image_classification/__pycache__
 global_label_accuracy.csv
 test_files
+.setups
+./setups
+script.sh

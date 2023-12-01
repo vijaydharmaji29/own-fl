@@ -78,3 +78,9 @@ class Aggregator:
         # Clear buffered local models
         self.sm.clear_lmodel_buffers()
         logging.debug('Local model buffers cleared')
+
+    def aggregate_no_models(self):
+        self.sm.own_cluster_num_samples = 0
+        logging.info(f'--- No Cluster models are formed ---')
+        self.sm.clear_lmodel_buffers()
+        logging.debug('Local model buffers cleared')

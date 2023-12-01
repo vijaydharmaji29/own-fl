@@ -189,7 +189,9 @@ class Client:
         Register an agent in aggregator
         """
         time.sleep(0.5)
-        asyncio.get_event_loop().run_until_complete(self.participate())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.participate())
 
     def start_wait_model_server(self):
         """
@@ -254,6 +256,11 @@ class Client:
         await send(msg, self.aggr_ip, self.msend_socket)
         logging.info('--- Local Models Sent ---')
 
+        # State transition to waiting_gm
+        self.tran_state(ClientState.waiting_gm)
+        logging.info(f'--- Client State is now waiting_gm ---')
+
+    def send_no_models(self):
         # State transition to waiting_gm
         self.tran_state(ClientState.waiting_gm)
         logging.info(f'--- Client State is now waiting_gm ---')

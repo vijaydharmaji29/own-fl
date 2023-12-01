@@ -12,6 +12,7 @@ print("SERVER:", SERVER, "PORT:", PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 DEREGISTER_MESSAGE = "!DEREGISTER"
+NON_PARTICIPATION_MESSAGE = "!NONPARTICIPATE"
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
@@ -27,6 +28,9 @@ def send(msg):
 
 def disconnect():
     send(DISCONNECT_MESSAGE)
+
+def send_non_participation_message():
+    send(NON_PARTICIPATION_MESSAGE)
 
 def send_deregister_message():
     send(DEREGISTER_MESSAGE)
