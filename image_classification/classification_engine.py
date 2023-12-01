@@ -195,12 +195,21 @@ def write_analysis(DataStorage, SystemMeasurement, name):
     folder_name =' ./test_files_' + name + '/'
 
     #make df for local accuracies and global accuracies
+<<<<<<< HEAD:image_classification/classification_engine.py
     local_accuracies = DataStorage.get_local_accuracies()
     df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
     df_local_accuracies.to_csv(folder_name + '/model_local_accuracy_' + name + '.csv')
 
     df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
     df_round_participation_list.to_csv(folder_name + '/round_participation_list_' + name + '.csv')
+=======
+    
+    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
+    df_local_accuracies.to_csv('./test_files/model_local_accuracy_' + name + '.csv')
+>>>>>>> refs/remotes/origin/main:examples/image_classification/classification_engine.py
+
+    df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
+    df_round_participation_list.to_csv('./test_files/round_participation_list_' + name + '.csv')
 
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
     df_global_accuracies.to_csv(folder_name + '/model_global_accuracy_' + name + '.csv')
