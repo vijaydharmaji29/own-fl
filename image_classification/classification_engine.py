@@ -187,26 +187,22 @@ def prep_test_data():
 def write_analysis(DataStorage, SystemMeasurement, name):
     print("\n\WRITING ANALYSIS")
 
+    folder_name ='./test_files_' + name + '/'
+
     try:
-        os.mkdir('./test_files_' + name + '/')
+        os.mkdir(folder_name)
     except:
         pass
 
-    folder_name =' ./test_files_' + name + '/'
+    print("folder name", folder_name)
 
     #make df for local accuracies and global accuracies
-<<<<<<< HEAD:image_classification/classification_engine.py
     local_accuracies = DataStorage.get_local_accuracies()
     df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
     df_local_accuracies.to_csv(folder_name + '/model_local_accuracy_' + name + '.csv')
 
     df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
     df_round_participation_list.to_csv(folder_name + '/round_participation_list_' + name + '.csv')
-=======
-    
-    df_local_accuracies = pd.DataFrame({'Local Accuracies': local_accuracies, 'Round time': DataStorage.round_time})
-    df_local_accuracies.to_csv('./test_files/model_local_accuracy_' + name + '.csv')
->>>>>>> refs/remotes/origin/main:examples/image_classification/classification_engine.py
 
     df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
     df_round_participation_list.to_csv('./test_files/round_participation_list_' + name + '.csv')
@@ -364,19 +360,8 @@ if __name__ == '__main__':
         rounds_arg = 25
         overall_score_arg = 0
 
-
-
-    # t = threading.Thread(target=run_process, args=(name, rounds_arg, overall_score_arg))
-    # t.start()
-
     run_process(name, rounds_arg, overall_score_arg)
     print("DONE")
 
-    # all_threads = []
-    # for i in range(5):
-    #     new_name = name + "_" + str(i)
-    #     t = threading.Thread(target=run_process, args=(new_name, rounds_arg, overall_score_arg))
-    #     all_threads.append(t)
-    #     t.start()
     
 

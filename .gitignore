@@ -33,3 +33,5 @@ test_files
 .setups
 ./setups
 script.sh
+test_files*
+output*
