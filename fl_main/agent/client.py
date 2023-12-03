@@ -20,7 +20,7 @@ class Client:
     between Agent's ML logic and an aggregator
     """
 
-    def __init__(self):
+    def __init__(self, sub_client):
 
         time.sleep(2)
         logging.info(f"--- Agent initialized ---")
@@ -51,8 +51,8 @@ class Client:
 
         if self.simulation_flag:
             # if it's simulation, use the manual socket number and agent name
-            self.exch_socket = int(sys.argv[2])
-            self.agent_name = sys.argv[3]
+            self.exch_socket = int(sys.argv[2]) + int(sub_client)
+            self.agent_name = sys.argv[3] + "_"  + str(sub_client)
 
         # Local file location        
         self.model_path = f'{self.config["model_path"]}/{self.agent_name}'

@@ -204,9 +204,6 @@ def write_analysis(DataStorage, SystemMeasurement, name):
     df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
     df_round_participation_list.to_csv(folder_name + '/round_participation_list_' + name + '.csv')
 
-    df_round_participation_list = pd.DataFrame({'Round participation': DataStorage.participation_list})
-    df_round_participation_list.to_csv('./test_files/round_participation_list_' + name + '.csv')
-
     df_global_accuracies = pd.DataFrame({'Global Accuracies': DataStorage.get_global_accuracies()})
     df_global_accuracies.to_csv(folder_name + '/model_global_accuracy_' + name + '.csv')
 
@@ -236,7 +233,7 @@ def write_analysis(DataStorage, SystemMeasurement, name):
 
     print("DONE\n\n")
 
-def run_process(name, rounds_arg, overall_score_arg):
+def run_process(name, rounds_arg, overall_score_arg, subclient):
     import fl_main.agent.communication_client as communication_client
 
     #to check if reverse skewing is enabled
@@ -256,7 +253,7 @@ def run_process(name, rounds_arg, overall_score_arg):
     logging.basicConfig(level=logging.INFO)
     logging.info('--- Heterogeneity Aware FL with client level intelligenece ---')
 
-    fl_client = Client()
+    fl_client = Client(subclient)
     logging.info(f'--- Your IP is {fl_client.agent_ip} ---')
 
     #for starting system measurement thread
@@ -355,12 +352,24 @@ if __name__ == '__main__':
         name = sys.argv[3]
         rounds_arg = int(sys.argv[4])
         overall_score_arg = int(sys.argv[5])
+        number_of_clients = int(sys.argv[6])
     except:
         name = "NoName"
         rounds_arg = 25
         overall_score_arg = 0
+        number_of_clients = 1
 
-    run_process(name, rounds_arg, overall_score_arg)
+    thread_list = []
+    for i in range(number_of_clients):
+        name = name + "_" + str(i)
+        thread = threading.Thread(target=run_process, args=(name, rounds_arg, overall_score_arg, i))
+        thread_list.append(thread)
+        thread.start()
+
+    for t in thread_list:
+        t.join()
+        
+    #run_process(name, rounds_arg, overall_score_arg)
     print("DONE")
 
     
