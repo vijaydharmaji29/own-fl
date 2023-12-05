@@ -6,6 +6,8 @@ import sys
 import datetime
 import threading
 import os
+import random
+
 
 
 import numpy as np
@@ -29,6 +31,13 @@ class TrainingMetaData:
     # This will be used for the weighted averaging
     # Set to a natural number > 0
     num_training_data = 8000
+
+def select_item_with_probability(items, probabilities):
+    if len(items) != len(probabilities):
+        raise ValueError("The number of items and probabilities should be the same.")
+    
+    selected_item = random.choices(items, weights=probabilities, k=1)
+    return selected_item[0]
 
 def init_models() -> Dict[str,np.array]:
     """
@@ -104,9 +113,15 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
 
 
     if not system_overide:
+        # Example usage
+        items = [1, 0]
+        probabilities = [0.5, 0.5]  # Represents 20%, 30%, and 50% probabilities respectively
+        
+        selected = select_item_with_probability(items, probabilities)
         overall_score = similarity_score*1000000/system_score
         DataStorage.overall_scores.append(overall_score)
-        if  similarity_score < overall_score_threshold:
+        #if  similarity_score < overall_score_threshold:
+        if selected == 0:
             return models, None, None, None
     else:
         DataStorage.overall_scores.append(0)
