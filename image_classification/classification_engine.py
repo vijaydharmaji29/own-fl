@@ -233,7 +233,7 @@ def write_analysis(DataStorage, SystemMeasurement, name):
 
     print("DONE\n\n")
 
-def run_process(name, rounds_arg, overall_score_arg, subclient):
+def run_process(name, rounds_arg, overall_score_arg):
     import fl_main.agent.communication_client as communication_client
 
     #to check if reverse skewing is enabled
@@ -253,7 +253,7 @@ def run_process(name, rounds_arg, overall_score_arg, subclient):
     logging.basicConfig(level=logging.INFO)
     logging.info('--- Heterogeneity Aware FL with client level intelligenece ---')
 
-    fl_client = Client(subclient)
+    fl_client = Client()
     logging.info(f'--- Your IP is {fl_client.agent_ip} ---')
 
     #for starting system measurement thread
@@ -342,7 +342,10 @@ def run_process(name, rounds_arg, overall_score_arg, subclient):
 
     DataStorage.end_full()
     write_analysis(DataStorage, sm, name)
-    sm.write_analysis() #system manager anaylysis
+
+    folder_name ='./test_files_' + name + '/'
+
+    sm.write_analysis(folder_name) #system manager anaylysis
     communication_client.send_deregister_message()
     print("SENT DEREGISTER MESSAGE")
     sys.exit()
@@ -359,18 +362,7 @@ if __name__ == '__main__':
         overall_score_arg = 0
         number_of_clients = 1
 
-    thread_list = []
-    for i in range(number_of_clients):
-        name = name + "_" + str(i)
-        thread = threading.Thread(target=run_process, args=(name, rounds_arg, overall_score_arg, i))
-        thread_list.append(thread)
-        thread.start()
-
-    for t in thread_list:
-        t.join()
-        
-    #run_process(name, rounds_arg, overall_score_arg)
-    print("DONE")
+    run_process(name, rounds_arg, overall_score_arg)
 
     
 
