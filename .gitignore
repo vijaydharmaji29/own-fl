@@ -35,3 +35,4 @@ test_files
 script.sh
 test_files*
 output*
+aggregator_test_files

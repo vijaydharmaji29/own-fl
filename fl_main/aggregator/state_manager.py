@@ -10,6 +10,7 @@ import numpy as np
 import logging
 import time
 from typing import Dict, Any
+import datetime
 
 from fl_main.lib.util.data_struc import LimitedDict
 from fl_main.lib.util.helpers import generate_id, generate_model_id
@@ -65,7 +66,7 @@ class StateManager:
         # Aggregation threshold to be used for aggregation criteria
         self.agg_threshold = 1
 
-    def ready_for_local_aggregation(self):
+    def ready_for_local_aggregation(self, DataStorage):
         """
         Return a bool val to identify if it can starts the aggregation process
         :return: (boolean) True if it has enough local models to aggregate
@@ -97,6 +98,8 @@ class StateManager:
         logging.info(f'--- Number of collected local models: {num_collected_lmodels} ---')
 
         if num_collected_lmodels >= num_agents:
+            time_now = datetime.datetime.now()
+            DataStorage.round_last_received.append(time_now)
             logging.info(f'--- Enough local models are collected. Aggregation will start. ---')
             return True, self.aggr_overide
         else:
@@ -216,11 +219,15 @@ class StateManager:
         self.agent_set.append(agent)
         return agent_id, socket
 
-    def increment_round(self):
+    def increment_round(self, DataStorage):
         """
         Increment the round number (called after each global model synthesis)
         :return:
         """
+        time_end = datetime.datetime.now()
+        DataStorage.round_start_times.append(time_end)
+        DataStorage.round_end_times.append(time_end)
+        DataStorage.write_analysis()
         self.round += 1
         StateManager.ROUND_NON_PARTICIPANTS = 0
         

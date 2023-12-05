@@ -9,6 +9,7 @@ formed after collecting enough local models.
 import asyncio, logging, time, numpy as np
 import threading
 from typing import List, Dict, Any
+import datetime
 
 from fl_main.lib.util.communication_handler import init_fl_server, send, send_websocket, receive 
 from fl_main.lib.util.data_struc import convert_LDict_to_Dict
@@ -17,6 +18,7 @@ from fl_main.lib.util.messengers import generate_db_push_message, generate_ack_m
      generate_cluster_model_dist_message, generate_agent_participation_confirm_message
 from fl_main.lib.util.states import ParticipateMSGLocation, ModelUpMSGLocation, PollingMSGLocation, \
      ModelType, AgentMsgType
+from .DataStorage import DataStorage
 
 from .state_manager import StateManager
 from .aggregation import Aggregator
@@ -29,13 +31,18 @@ class Server:
     and the aggregator and an agent (client)
     """
 
-    def __init__(self):
+    def __init__(self, ds):
         """
         Instantiation of a Server instance
         """
         # read the config file
         config_file = set_config_file("aggregator")
         self.config = read_config(config_file)
+
+        self.DataStorage = ds
+
+        #comments for performance measure code
+        self.round_started_flag = True
 
         # functional components
         self.sm = StateManager()
@@ -134,7 +141,8 @@ class Server:
         await self._push_local_models(agent_id, model_id, lmodels, gene_time, performance)
 
         # Recognize this step as one aggregation round
-        self.sm.increment_round()
+        self.round_started_flag = True
+        self.sm.increment_round(self.DataStorage)
 
     async def _send_updated_global_model(self, websocket, agent_id, exch_socket):
         """
@@ -172,6 +180,12 @@ class Server:
         :param msg: message received from the agent
         :return:
         """
+        #round first recieved local model update time capturing
+        if self.round_started_flag:
+            time_now = datetime.datetime.now()
+            self.DataStorage.round_1st_recieved.append(time_now)
+            self.round_started_flag = False
+
         lmodels = msg[int(ModelUpMSGLocation.lmodels)]
         agent_id = msg[int(ModelUpMSGLocation.agent_id)]
         model_id = msg[int(ModelUpMSGLocation.model_id)]
@@ -214,7 +228,7 @@ class Server:
             # Periodic check (frequency is specified in the JSON config file)
             await asyncio.sleep(self.round_interval)
 
-            ready_for_aggr, overide_round = self.sm.ready_for_local_aggregation()
+            ready_for_aggr, overide_round = self.sm.ready_for_local_aggregation(self.DataStorage)
 
             if overide_round:
                 logging.info('No models to be collected this round')
@@ -224,7 +238,8 @@ class Server:
                 #sending latest cluster model to all i.e previous round cluester model
                 if self.is_polling == False:
                     await self._send_cluster_models_to_all()
-                self.sm.increment_round()
+                self.round_started_flag = True
+                self.sm.increment_round(self.DataStorage)
                 continue
 
             if ready_for_aggr and not overide_round:  # if it has enough models to aggregate
@@ -243,13 +258,15 @@ class Server:
                     await self._send_cluster_models_to_all()
 
                 # increment the aggregation round number
-                self.sm.increment_round()
+                self.round_started_flag = True
+                self.sm.increment_round(self.DataStorage)
 
     async def _send_cluster_models_to_all(self):
         """
         Send out cluster models to all agents under this aggregator
         :return:
         """
+        self.round_started_flag = True
         model_id = self.sm.cluster_model_ids[-1]
         cluster_models = convert_LDict_to_Dict(self.sm.cluster_models)
 
@@ -310,8 +327,8 @@ class Server:
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
-
-    s = Server()
+    ds = DataStorage()
+    s = Server(ds)
     logging.info("--- Aggregator Started ---")
 
     #starting communication server
