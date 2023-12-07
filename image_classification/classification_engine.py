@@ -113,14 +113,9 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
 
 
     if not system_overide:
-        # Example usage
-        items = [1, 0]
-        probabilities = [0.75, 0.25]  # Represents 20%, 30%, and 50% probabilities respectively
-        
-        selected = select_item_with_probability(items, probabilities)
         overall_score = similarity_score*1000000/system_score
         DataStorage.overall_scores.append(overall_score)
-        #if  similarity_score < overall_score_threshold:
+        #if  system_score < overall_score_threshold:
         if selected == 0:
             return models, None, None, None
     else:
