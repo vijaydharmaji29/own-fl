@@ -115,8 +115,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     if not system_overide:
         overall_score = similarity_score*1000000/system_score
         DataStorage.overall_scores.append(overall_score)
-        #if  system_score < overall_score_threshold:
-        if selected == 0:
+        if system_score < overall_score_threshold:
             return models, None, None, None
     else:
         DataStorage.overall_scores.append(0)
