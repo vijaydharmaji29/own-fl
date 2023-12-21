@@ -88,16 +88,11 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     data_object_for_training = dm #instance of DataManager object
 
     #returns trained neural network,
-    #dataset used for training in terms of tensor (after tranformation)
-    #dataset used for trainign in terms of PIL (before transformation)
 
-    #similarity_score = dm.dataset_similarity_score
     bhattacharya_distance = (dm.dataset_bhattacharya_distance)
     similarity_score = bhattacharya_distance*1000
     DataStorage.simialrity_scores.append(similarity_score)
 
-    # test for similarity score
-    print('\n\n\n')
     print("Similarity Score: ", similarity_score)
     print("Bhattacharya Distance: ", bhattacharya_distance)
 
@@ -109,13 +104,12 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     else:
         print("PREV ROUND TIME:", DataStorage.round_time[-1])
         print("SYSTEM SCORE:", system_score)
-    print('\n\n\n')
 
 
     if not system_overide:
         overall_score = similarity_score*1000000/system_score
         DataStorage.overall_scores.append(overall_score)
-        if system_score < overall_score_threshold:
+        if overall_score < overall_score_threshold:
             return models, None, None, None
     else:
         DataStorage.overall_scores.append(0)
