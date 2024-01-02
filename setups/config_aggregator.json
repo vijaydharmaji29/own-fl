@@ -1,5 +1,5 @@
 {
-    "aggr_ip": "10.8.1.161",
+    "aggr_ip": "localhost",
     "comm_port": 7777,
     "db_ip": "10.8.1.161",
     "reg_socket": "8765",

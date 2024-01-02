@@ -83,7 +83,7 @@ def training(models: Dict[str,np.array], init_flag: bool = False, DataStorage = 
     if len(DataStorage.label_accuracy) > 0:
         last_accuracy = DataStorage.label_accuracy[-1]
 
-    dm = DataManger(int(TrainingMetaData.num_training_data / 4), last_accuracy, order)
+    dm = DataManger(int(TrainingMetaData.num_training_data / 4), last_accuracy)
     print("DataStorage label accuracy:", last_accuracy)
     data_object_for_training = dm #instance of DataManager object
 
@@ -195,7 +195,7 @@ def write_analysis(DataStorage, SystemMeasurement, name):
     except:
         pass
 
-    print("folder name", folder_name)
+    print("Folder Name", folder_name)
 
     #make df for local accuracies and global accuracies
     local_accuracies = DataStorage.get_local_accuracies()
@@ -214,7 +214,6 @@ def write_analysis(DataStorage, SystemMeasurement, name):
     df_skip_round_times = pd.DataFrame({'Skip Round Time': DataStorage.skip_round_time})
     df_skip_round_times.to_csv(folder_name + '/skip_round_time_' + name + '.csv')
 
-
     df_cpu_ram_utilisation = pd.DataFrame({'Average CPU Utilisation': SystemMeasurement.cpu_average_utilisation, "Average RAM Utilisation": SystemMeasurement.ram_average_utilisation})
     df_cpu_ram_utilisation.to_csv(folder_name + '/system_av_utilisation_' + name + '.csv')
 
@@ -232,22 +231,11 @@ def write_analysis(DataStorage, SystemMeasurement, name):
     file_process_time.write("Full process time: " + str(DataStorage.process_whole_time))
     file_process_time.close()
 
-    print("DONE\n\n")
+    print("DONE\n")
 
 def run_process(name, rounds_arg, overall_score_arg):
     import fl_main.agent.communication_client as communication_client
 
-    #to check if reverse skewing is enabled
-    try:
-        name = sys.argv[3]
-        rounds_arg = int(sys.argv[4])
-        overall_score_arg = int(sys.argv[5])
-
-    except:
-        rounds_arg = 25
-        overall_score_arg = 0
-
-    order = True
     print("TRAINING COUNT:", rounds_arg)
     print("OVERALL SCORE TRESHOLD:", overall_score_arg)
 
@@ -263,7 +251,7 @@ def run_process(name, rounds_arg, overall_score_arg):
     sys_thread.start()
 
     # Create a set of template models (to tell the shapes)
-    initial_models = training(dict(), init_flag=True, order=order)
+    initial_models = training(dict(), init_flag=True)
 
     # Sending initial models
     fl_client.send_initial_model(initial_models)
@@ -276,7 +264,7 @@ def run_process(name, rounds_arg, overall_score_arg):
     skip_count = 0
 
     #number of rounds of training to run
-    training_count_treshold = rounds_arg
+    training_count_threshold = rounds_arg
 
     #similarity score treshold for client participation
     overall_score_threshold = overall_score_arg
@@ -286,7 +274,7 @@ def run_process(name, rounds_arg, overall_score_arg):
 
     communication_client.send("WELCOME MESSAGE!")
 
-    while judge_termination(training_count, gm_arrival_count, training_count_treshold):
+    while judge_termination(training_count, gm_arrival_count, training_count_threshold):
 
         print("\n\t TRAINING COUNT: ", training_count, "\n")
         sm.start_round()
@@ -305,13 +293,13 @@ def run_process(name, rounds_arg, overall_score_arg):
         DataStorage.add_global_accuracy(global_model_performance_data[0])#this is lagged by one 
 
         # Training
-        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, SystemMeasurement=sm, order=order, overall_score_threshold=overall_score_threshold)
+        models, round_loss, train_dataset_tensors, trainset_dataset_PIL = training(global_models, DataStorage=DataStorage, SystemMeasurement=sm, overall_score_threshold=overall_score_threshold)
         
         training_count += 1
         
         if(round_loss == None): #condition for checking if client is not participating
             # Sending initial models
-            logging.info(f'--- FAILED SIMILARITY SCORE TRESHOLD, SKIPPING CURRENT ROUND ---')
+            logging.info(f'--- FAILED SIMILARITY SCORE THRESHOLD, SKIPPING CURRENT ROUND ---')
             communication_client.send_non_participation_message()
             #fl_client.send_no_models()
             print("Message Global Models Size Of", sys.getsizeof(global_models))
@@ -340,7 +328,6 @@ def run_process(name, rounds_arg, overall_score_arg):
         print("TRAINING ROUND TIME TAKEN:", time_difference)
         sm.end_round()
 
-
     DataStorage.end_full()
     write_analysis(DataStorage, sm, name)
 
@@ -356,12 +343,12 @@ if __name__ == '__main__':
         name = sys.argv[3]
         rounds_arg = int(sys.argv[4])
         overall_score_arg = int(sys.argv[5])
-        number_of_clients = int(sys.argv[6])
+        #number_of_clients = int(sys.argv[6])
     except:
         name = "NoName"
         rounds_arg = 25
         overall_score_arg = 0
-        number_of_clients = 1
+        #number_of_clients = 1
 
     run_process(name, rounds_arg, overall_score_arg)
 
