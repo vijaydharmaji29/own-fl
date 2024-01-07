@@ -8,11 +8,14 @@ from threading import Thread
 
 from fl_main.lib.util.communication_handler import init_client_server, send, receive, send_websocket
 from fl_main.lib.util.helpers import read_config, init_loop, \
-     save_model_file, load_model_file, read_state, write_state, generate_id, \
-     set_config_file, get_ip, compatible_data_dict_read, generate_model_id, \
-     create_data_dict_from_models, create_meta_data_dict
-from fl_main.lib.util.states import IDPrefix, ClientState, AggMsgType, ParticipateConfirmationMSGLocation, GMDistributionMsgLocation, PollingMSGLocation
-from fl_main.lib.util.messengers import generate_lmodel_update_message, generate_agent_participation_message, generate_polling_message
+    save_model_file, load_model_file, read_state, write_state, generate_id, \
+    set_config_file, get_ip, compatible_data_dict_read, generate_model_id, \
+    create_data_dict_from_models, create_meta_data_dict
+from fl_main.lib.util.states import IDPrefix, ClientState, AggMsgType, ParticipateConfirmationMSGLocation, \
+    GMDistributionMsgLocation, PollingMSGLocation
+from fl_main.lib.util.messengers import generate_lmodel_update_message, generate_agent_participation_message, \
+    generate_polling_message
+
 
 class Client:
     """
@@ -47,14 +50,14 @@ class Client:
         self.aggr_ip = self.config['aggr_ip']
         self.reg_socket = self.config['reg_socket']
         self.msend_socket = 0  # later updated based on welcome message
-        self.exch_socket = 0 
+        self.exch_socket = 0
 
         if self.simulation_flag:
             # if it's simulation, use the manual socket number and agent name
             self.exch_socket = int(sys.argv[2])
             self.agent_name = sys.argv[3]
 
-        # Local file location        
+        # Local file location
         self.model_path = f'{self.config["model_path"]}/{self.agent_name}'
 
         # if there is no directory to save models
@@ -67,7 +70,7 @@ class Client:
 
         # Aggregation round - later updated by the info from the aggregator
         self.round = 0
-        
+
         # Initialization
         self.init_weights_flag = bool(self.config['init_weights_flag'])
 
@@ -89,8 +92,8 @@ class Client:
         logging.debug(models)
 
         msg = generate_agent_participation_message(
-                self.agent_name, self.id, model_id, models, self.init_weights_flag, self.simulation_flag,
-                self.exch_socket, gene_time, performance_dict, self.agent_ip)
+            self.agent_name, self.id, model_id, models, self.init_weights_flag, self.simulation_flag,
+            self.exch_socket, gene_time, performance_dict, self.agent_ip)
         resp = await send(msg, self.aggr_ip, self.reg_socket)
 
         logging.debug(msg)
@@ -119,7 +122,7 @@ class Client:
             await asyncio.sleep(5)
             state = read_state(self.model_path, self.statefile)
 
-            if state == ClientState.sending: 
+            if state == ClientState.sending:
                 # Ready to send the local model
                 await self.send_models()
 
@@ -141,7 +144,6 @@ class Client:
 
             else:
                 logging.error(f'--- State Not Defined ---')
-    
 
     # Push or Polling
     async def wait_models(self, websocket, path):
@@ -156,7 +158,7 @@ class Client:
         logging.debug(f'Models: {gm_msg}')
 
         self.save_model_from_message(gm_msg, GMDistributionMsgLocation)
-    
+
     async def process_polling(self):
         logging.info(f'--- Polling to see if there is any update ---')
 
@@ -165,9 +167,8 @@ class Client:
         if resp[int(PollingMSGLocation.msg_type)] == AggMsgType.update:
             logging.info(f'--- Global Model Received ---')
             self.save_model_from_message(resp, GMDistributionMsgLocation)
-        else: # AggMsgType is "ack"
+        else:  # AggMsgType is "ack"
             logging.info(f'--- Global Model is NOT ready (ACK) ---')
-
 
     # Starting FL client functions
     def start_fl_client(self):
@@ -198,7 +199,7 @@ class Client:
         Start a thread for waiting for global models
         """
         time.sleep(0.5)
-        th = Thread(target = init_client_server, args=[self.wait_models, self.agent_ip, self.exch_socket])
+        th = Thread(target=init_client_server, args=[self.wait_models, self.agent_ip, self.exch_socket])
         th.start()
 
     def start_model_exchange_server(self):
@@ -207,25 +208,24 @@ class Client:
         """
         time.sleep(0.5)
         self.agent_running = True
-        th = Thread(target = init_loop, args=[self.model_exchange_routine()])
+        th = Thread(target=init_loop, args=[self.model_exchange_routine()])
         th.start()
 
     # Save models from message
     def save_model_from_message(self, msg, MSG_LOC):
 
         # pass (model_id, models) to an app
-        data_dict = create_data_dict_from_models(msg[int(MSG_LOC.model_id)], 
-                        msg[int(MSG_LOC.global_models)], msg[int(MSG_LOC.aggregator_id)])
+        data_dict = create_data_dict_from_models(msg[int(MSG_LOC.model_id)],
+                                                 msg[int(MSG_LOC.global_models)], msg[int(MSG_LOC.aggregator_id)])
         self.round = msg[int(MSG_LOC.round)]
 
         # Save the received cluster global models to the local file
         save_model_file(data_dict, self.model_path, self.gmfile)
         logging.info(f'--- Global Models Saved ---')
-        
+
         # State transition to gm_ready
         self.tran_state(ClientState.gm_ready)
         logging.info(f'--- Client State is now gm_ready ---')
-    
 
     # Read and change the client state
     def read_state(self) -> ClientState:
