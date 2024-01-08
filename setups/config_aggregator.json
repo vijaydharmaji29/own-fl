@@ -1,7 +1,7 @@
 {
-    "aggr_ip": "localhost",
+    "aggr_ip": "20.121.133.182",
     "comm_port": 7777,
-    "db_ip": "10.8.1.161",
+    "db_ip": "20.121.133.182",
     "reg_socket": "8765",
     "dereg_socket": "8766",
     "exch_socket": "7890",
