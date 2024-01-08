@@ -1,5 +1,5 @@
 {
-  "aggr_ip": "20.121.133.182",
+  "aggr_ip": "10.1.0.5",
   "comm_port": 7777,
   "reg_socket": "8765",
   "dereg_socket": "8766",
