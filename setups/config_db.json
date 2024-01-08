@@ -1,5 +1,5 @@
 {
-  "db_ip": "localhost",
+  "db_ip": "10.1.0.5",
   "db_socket": "9017",
   "db_name": "sample_data",
   "db_data_path": "./db",
